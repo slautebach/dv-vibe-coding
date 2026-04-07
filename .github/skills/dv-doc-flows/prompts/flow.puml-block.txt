@@ -1,0 +1,73 @@
+## PlantUML Diagram Generation Instructions
+
+When generating flow documentation, create a separate PlantUML file and PNG image:
+
+### Step 1: Create logic-diagram.puml
+
+Generate a PlantUML activity diagram file with this structure:
+
+```plantuml
+@startuml
+start
+:Trigger: [Trigger Description];
+:Action 1;
+if (Condition?) then (Yes)
+  :Action 2;
+else (No)
+  :Action 3;
+endif
+repeat
+  :For Each Item;
+  :Process Item;
+repeat while (More Items?) is (Yes)
+:Complete;
+stop
+@enduml
+```
+
+### Step 2: Generate PNG Image
+
+Run the PlantUML command to generate the PNG:
+
+```bash
+plantuml -tpng Documentation/cloud-flows/<FlowName>/logic-diagram.puml
+```
+
+This will create `logic-diagram.png` in the same directory.
+
+### Step 3: Embed in README.md
+
+In the README.md file, embed the diagram using markdown:
+
+```markdown
+## Flow Diagram
+
+![Flow Logic Diagram](./logic-diagram.png)
+
+**Diagram Explanation:**
+
+- **Start/Stop**: Flow entry and exit points
+- **Diamond nodes**: Decision points (if/else conditions)
+- **Rectangle nodes**: Actions and processes
+- **Repeat loops**: Iteration over multiple items
+```
+
+### File Structure
+
+After completion, the flow folder should contain:
+
+```
+/Documentation/cloud-flows/<FlowName>/
+├── README.md         # Contains ![Flow Logic Diagram](./logic-diagram.png)
+├── logic-diagram.puml    # PlantUML source code
+├── logic-diagram.png     # Generated image
+├── CodeReview.md
+└── metadata.json
+```
+
+### Important Notes
+
+- Always create the .puml file first, then generate the .png
+- Do not embed PlantUML code blocks directly in README.md
+- Use relative path `./logic-diagram.png` in the markdown image reference
+- The PNG file should be committed to git along with the .puml source

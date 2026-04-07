@@ -1,0 +1,181 @@
+@startuml API Sequence Diagram Template
+' API Request Flow Sequence Diagram Template
+' Author: [Your Name]
+' Date: [Date]
+' Description: Template for REST API request/response flows
+
+!theme vibrant
+title API Request Flow - [Endpoint Name]
+
+' Enable auto-numbering
+autonumber
+
+' Define participants
+actor "Client" as client
+participant "API Gateway" as gateway
+participant "Auth Service" as auth
+participant "Business Service" as service
+database "Database" as db
+queue "Message Queue" as mq
+participant "External API" as external
+
+' Optional: Different participant types
+' boundary "Load Balancer" as lb
+' control "Controller" as ctrl
+' entity "Entity" as entity
+' collections "Cache" as cache
+
+== Authentication ==
+client -> gateway: POST /api/v1/resource\n**Headers:**\nAuthorization: Bearer <token>\n**Body:** { data }
+activate gateway
+
+gateway -> auth: Validate JWT Token
+activate auth
+
+alt Token Valid
+    auth --> gateway: 200 OK\n{ user_id, permissions }
+    deactivate auth
+else Token Invalid
+    auth --> gateway: 401 Unauthorized
+    deactivate auth
+    gateway --> client: 401 Unauthorized\n{ "error": "Invalid token" }
+    deactivate gateway
+    [<- gateway: End Flow
+end
+
+== Authorization ==
+gateway -> service: Forward Request\n{ user_id, data }
+activate service
+
+service -> service: Check User Permissions
+alt Authorized
+    note right of service
+        User has required
+        permissions
+    end note
+else Unauthorized
+    service --> gateway: 403 Forbidden
+    gateway --> client: 403 Forbidden\n{ "error": "Insufficient permissions" }
+    [<- gateway: End Flow
+end
+
+== Business Logic ==
+service -> db: BEGIN TRANSACTION
+activate db
+
+service -> db: Query Existing Data\nSELECT * FROM resources\nWHERE id = ?
+db --> service: Result Set
+
+alt Resource Exists
+    service -> service: Validate Business Rules
+    
+    alt Validation Passed
+        service -> db: Update Resource\nUPDATE resources SET ...\nWHERE id = ?
+        db --> service: Affected Rows
+        
+        service -> db: Log Activity\nINSERT INTO audit_log (...)
+        db --> service: Log Created
+        
+        service -> db: COMMIT
+        deactivate db
+        
+    else Validation Failed
+        service -> db: ROLLBACK
+        deactivate db
+        service --> gateway: 400 Bad Request
+        gateway --> client: 400 Bad Request\n{ "error": "Validation failed" }
+        [<- gateway: End Flow
+    end
+    
+else Resource Not Found
+    service -> db: ROLLBACK
+    deactivate db
+    service --> gateway: 404 Not Found
+    gateway --> client: 404 Not Found\n{ "error": "Resource not found" }
+    [<- gateway: End Flow
+end
+
+== Async Operations ==
+group Optional Async Processing
+    service -> mq: Publish Event\n{ event_type, data }
+    activate mq
+    note right of mq
+        Event published for
+        downstream processing
+    end note
+    mq --> service: ACK
+    deactivate mq
+end
+
+== External Integration ==
+group Optional External API Call
+    service -> external: POST /external/api\nAPI-Key: <key>
+    activate external
+    
+    alt External Success
+        external --> service: 200 OK\n{ external_data }
+        deactivate external
+    else External Failure
+        external --> service: 500 Error
+        deactivate external
+        note right of service
+            Log error but don't
+            fail main request
+        end note
+    end
+end
+
+== Response ==
+service --> gateway: 200 OK\n**Body:**\n{\n  "id": "123",\n  "status": "updated",\n  "timestamp": "2024-01-15T10:30:00Z"\n}
+deactivate service
+
+gateway --> client: 200 OK\n**Headers:**\nX-Request-ID: abc-123\n**Body:** { response }
+deactivate gateway
+
+== Error Handling ==
+note over client, external
+  **Error Response Format:**
+  {
+    "error": {
+      "code": "ERROR_CODE",
+      "message": "Human-readable message",
+      "details": [ ],
+      "timestamp": "ISO 8601 timestamp",
+      "request_id": "unique-request-id"
+    }
+  }
+end note
+
+== Rate Limiting ==
+note over gateway
+  **Rate Limits:**
+  - 1000 requests/hour per user
+  - 10000 requests/hour per IP
+  - 429 Too Many Requests response
+end note
+
+legend right
+  |= **HTTP Status Codes** |
+  | 200 | Success |
+  | 201 | Created |
+  | 400 | Bad Request |
+  | 401 | Unauthorized |
+  | 403 | Forbidden |
+  | 404 | Not Found |
+  | 429 | Too Many Requests |
+  | 500 | Internal Server Error |
+  | 503 | Service Unavailable |
+  
+  **Common Headers:**
+  - Authorization: Bearer <token>
+  - Content-Type: application/json
+  - X-Request-ID: Correlation ID
+  - X-API-Version: v1
+endlegend
+
+footer
+  API Documentation v1.0
+  Last Updated: [Date]
+end footer
+
+@enduml

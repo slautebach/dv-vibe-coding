@@ -1,0 +1,31 @@
+# Python bytecode and cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python optimization files
+*.pyo
+*.pyd
+
+# pytest cache
+.pytest_cache/
+
+# Logs
+*.log
+
+# Virtual environments (if created in scripts folder)
+venv/
+.venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

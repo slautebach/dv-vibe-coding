@@ -1,0 +1,134 @@
+@startuml Database ERD Template
+' Entity-Relationship Diagram Template
+' Author: [Your Name]
+' Date: [Date]
+' Description: Template for database entity-relationship diagrams
+
+!theme cerulean
+title Database Entity-Relationship Diagram
+skinparam linetype ortho
+
+' Define entities with primary keys, foreign keys, and attributes
+entity "User" as user {
+  * user_id : bigint <<PK>>
+  * email : varchar(255) <<unique>>
+  --
+  username : varchar(100)
+  first_name : varchar(100)
+  last_name : varchar(100)
+  password_hash : varchar(255)
+  is_active : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+entity "Role" as role {
+  * role_id : int <<PK>>
+  * role_name : varchar(50) <<unique>>
+  --
+  description : text
+  created_at : timestamp
+}
+
+entity "UserRole" as user_role {
+  * user_id : bigint <<FK>>
+  * role_id : int <<FK>>
+  --
+  assigned_at : timestamp
+  assigned_by : bigint <<FK>>
+}
+
+entity "Post" as post {
+  * post_id : bigint <<PK>>
+  * user_id : bigint <<FK>>
+  * category_id : int <<FK>>
+  --
+  title : varchar(200)
+  content : text
+  slug : varchar(200) <<unique>>
+  status : varchar(20)
+  published_at : timestamp
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+entity "Category" as category {
+  * category_id : int <<PK>>
+  --
+  name : varchar(100) <<unique>>
+  description : text
+  parent_id : int <<FK>>
+}
+
+entity "Comment" as comment {
+  * comment_id : bigint <<PK>>
+  * post_id : bigint <<FK>>
+  * user_id : bigint <<FK>>
+  * parent_comment_id : bigint <<FK>>
+  --
+  content : text
+  is_approved : boolean
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+entity "Tag" as tag {
+  * tag_id : int <<PK>>
+  --
+  name : varchar(50) <<unique>>
+  slug : varchar(50) <<unique>>
+}
+
+entity "PostTag" as post_tag {
+  * post_id : bigint <<FK>>
+  * tag_id : int <<FK>>
+}
+
+' Define relationships
+' Cardinality: ||--o{ means "one-to-many"
+' ||-- exactly one
+' |o-- zero or one
+' }o-- zero or many
+' }|-- one or many
+
+user ||--o{ user_role : "has"
+role ||--o{ user_role : "assigned to"
+user ||--o{ post : "writes"
+category ||--o{ post : "categorizes"
+category ||--o{ category : "parent of"
+post ||--o{ comment : "has"
+user ||--o{ comment : "writes"
+comment ||--o{ comment : "replies to"
+post ||--o{ post_tag : "tagged with"
+tag ||--o{ post_tag : "used in"
+
+' Optional: Add notes for documentation
+note right of user
+  **User Entity**
+  - Stores user account information
+  - Password should be hashed (bcrypt)
+  - Email must be unique
+  - Soft delete via is_active flag
+end note
+
+note right of user_role
+  **Junction Table**
+  - Many-to-many relationship
+  - Tracks role assignments
+  - Includes audit fields
+end note
+
+legend right
+  |= **Legend** |
+  | <<PK>> | Primary Key |
+  | <<FK>> | Foreign Key |
+  | <<unique>> | Unique Constraint |
+  | timestamp | DateTime with timezone |
+endlegend
+
+footer
+  Generated with PlantUML
+  Last Updated: [Date]
+end footer
+
+@enduml

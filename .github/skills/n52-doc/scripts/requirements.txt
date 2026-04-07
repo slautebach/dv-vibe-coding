@@ -1,0 +1,46 @@
+# North52 Formula Analyzer - Python Dependencies
+
+# ============================================================================
+# CORE ANALYSIS - STANDARD LIBRARY ONLY
+# ============================================================================
+# The core analysis script (analyze_formula.py) uses Python 3.8+ standard library
+# modules only for maximum portability.
+
+# Python Standard Library Modules Used:
+# ----------------------------------------------------------------------------
+# json                   - Reading/writing analysis_metadata.json files
+# re                     - Regular expressions for formula code parsing
+# pathlib                - Cross-platform file system path operations
+# datetime               - Timestamp generation and comparison
+# argparse               - Command-line argument parsing for all scripts
+# sys                    - System operations and path manipulation
+# os                     - Operating system interfaces
+
+# ============================================================================
+# DATAVERSE INTEGRATION - OPTIONAL DEPENDENCIES
+# ============================================================================
+# For fetching formulas directly from Dataverse (fetch_north52_from_dataverse.py)
+# Install these only if you want to retrieve formulas from Dataverse API:
+
+# Azure Identity - For authentication to Dataverse
+azure-identity>=1.15.0
+PowerPlatform-Dataverse-Client>=0.3.0
+
+# MSAL Extensions - For persistent token caching (stores in OS keychain)
+msal-extensions>=1.0.0
+
+# Requests - For HTTP API calls
+requests>=2.31.0
+
+# Installation for Dataverse Integration:
+# ----------------------------------------------------------------------------
+# pip install -r requirements.txt
+# Or install specific packages:
+# pip install azure-identity requests
+
+# To use without Dataverse integration:
+# ----------------------------------------------------------------------------
+# No installation needed! Just ensure you have Python 3.8 or later:
+#   python --version  # Should show 3.8.0 or higher
+
+

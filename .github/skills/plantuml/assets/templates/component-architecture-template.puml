@@ -1,0 +1,341 @@
+@startuml Component Architecture Template
+' Component Architecture Diagram Template
+' Author: [Your Name]
+' Date: [Date]
+' Description: Template for system component and module architecture
+
+!theme cerulean
+title Component Architecture - [System Name]
+
+' Define custom colors
+!define FRONTEND_COLOR #61DAFB
+!define BACKEND_COLOR #68A063
+!define DATA_COLOR #336791
+!define EXTERNAL_COLOR #FF6B6B
+!define SHARED_COLOR #FFD93D
+
+' External actors
+actor "End User" as user
+actor "Administrator" as admin
+actor "System Admin" as sysadmin
+
+' Presentation Layer
+package "Presentation Layer" FRONTEND_COLOR {
+    
+    component [Web UI\n(React)] as web_ui {
+        portin "HTTP" as web_http
+        portout "REST API" as web_api
+        portout "WebSocket" as web_ws
+    }
+    
+    component [Mobile App\n(React Native)] as mobile {
+        portin "HTTPS" as mobile_https
+        portout "REST API" as mobile_api
+    }
+    
+    component [Admin Dashboard\n(Angular)] as admin_ui {
+        portin "HTTPS" as admin_https
+        portout "Admin API" as admin_api
+    }
+}
+
+' API Gateway Layer
+package "API Gateway Layer" {
+    
+    component [API Gateway\n(Kong/NGINX)] as gateway {
+        portin "HTTPS In" as gw_in
+        portout "Service Routes" as gw_out
+        
+        [Rate Limiter] as rate_limiter
+        [Auth Middleware] as auth_mw
+        [Request Logger] as logger
+    }
+}
+
+' Application Layer
+package "Application Layer" BACKEND_COLOR {
+    
+    ' Core Services
+    component [User Service\n(Node.js)] as user_service {
+        portin "UserAPI" as user_api_in
+        portout "UserDB" as user_db_out
+        portin "UserEvents" as user_events_in
+    }
+    
+    component [Auth Service\n(Node.js)] as auth_service {
+        portin "AuthAPI" as auth_api_in
+        portout "AuthDB" as auth_db_out
+        
+        [JWT Manager] as jwt
+        [OAuth Provider] as oauth
+        [Password Hasher] as hasher
+    }
+    
+    component [Order Service\n(Java Spring)] as order_service {
+        portin "OrderAPI" as order_api_in
+        portout "OrderDB" as order_db_out
+        portout "OrderEvents" as order_events_out
+    }
+    
+    component [Product Service\n(Java Spring)] as product_service {
+        portin "ProductAPI" as product_api_in
+        portout "ProductDB" as product_db_out
+        portout "Search Index" as product_search_out
+    }
+    
+    component [Payment Service\n(Python)] as payment_service {
+        portin "PaymentAPI" as payment_api_in
+        portout "PaymentDB" as payment_db_out
+        portout "PaymentEvents" as payment_events_out
+    }
+    
+    component [Notification Service\n(Python)] as notification_service {
+        portin "NotificationAPI" as notif_api_in
+        portin "Events" as notif_events_in
+        portout "SMTP/SMS" as notif_out
+    }
+}
+
+' Shared Libraries
+package "Shared Libraries" SHARED_COLOR {
+    component [Common Utils] as common_utils
+    component [Logging Library] as logging_lib
+    component [Validation Library] as validation_lib
+    component [Error Handling] as error_handler
+}
+
+' Message Bus
+package "Message Bus" {
+    queue "Event Bus\n(RabbitMQ/Kafka)" as message_bus {
+        portin "Publishers" as mb_in
+        portout "Subscribers" as mb_out
+    }
+}
+
+' Data Layer
+package "Data Layer" DATA_COLOR {
+    
+    database "User DB\n(PostgreSQL)" as user_db {
+        folder "Users" as users_table
+        folder "Profiles" as profiles_table
+        folder "Sessions" as sessions_table
+    }
+    
+    database "Auth DB\n(PostgreSQL)" as auth_db {
+        folder "Credentials" as creds_table
+        folder "Tokens" as tokens_table
+        folder "Audit Log" as audit_table
+    }
+    
+    database "Order DB\n(MongoDB)" as order_db {
+        folder "Orders" as orders_col
+        folder "Order Items" as items_col
+    }
+    
+    database "Product DB\n(PostgreSQL)" as product_db {
+        folder "Products" as products_table
+        folder "Categories" as categories_table
+        folder "Inventory" as inventory_table
+    }
+    
+    database "Cache\n(Redis)" as cache {
+        folder "Session Cache"
+        folder "Data Cache"
+        folder "Rate Limit"
+    }
+}
+
+' Search and Analytics
+package "Search & Analytics" {
+    cloud "Search Engine\n(Elasticsearch)" as search {
+        folder "Product Index"
+        folder "User Index"
+    }
+    
+    cloud "Analytics\n(Apache Spark)" as analytics
+}
+
+' External Services
+package "External Services" EXTERNAL_COLOR {
+    cloud "Payment Gateway\n(Stripe)" as stripe
+    cloud "Email Service\n(SendGrid)" as sendgrid
+    cloud "SMS Service\n(Twilio)" as twilio
+    cloud "File Storage\n(AWS S3)" as s3
+    cloud "CDN\n(CloudFront)" as cdn
+}
+
+' Infrastructure
+package "Infrastructure" {
+    component [Monitoring\n(Prometheus)] as monitoring
+    component [Logging\n(ELK Stack)] as elk
+    component [Tracing\n(Jaeger)] as tracing
+    component [Service Discovery\n(Consul)] as consul
+}
+
+' Connections: User to Presentation
+user --> web_http
+user --> mobile_https
+admin --> admin_https
+
+' Presentation to Gateway
+web_api --> gw_in
+mobile_api --> gw_in
+admin_api --> gw_in
+
+' Gateway internals
+gw_in --> rate_limiter
+rate_limiter --> auth_mw
+auth_mw --> logger
+logger --> gw_out
+
+' Gateway to Services
+gw_out --> user_api_in
+gw_out --> auth_api_in
+gw_out --> order_api_in
+gw_out --> product_api_in
+gw_out --> payment_api_in
+gw_out --> notif_api_in
+
+' Service to Service
+order_service --> user_service : "Verify user"
+order_service --> product_service : "Check stock"
+payment_service --> order_service : "Update status"
+
+' Services to Message Bus
+order_events_out --> mb_in
+payment_events_out --> mb_in
+mb_out --> notif_events_in
+mb_out --> user_events_in
+
+' Services to Databases
+user_db_out --> user_db
+auth_db_out --> auth_db
+order_db_out --> order_db
+product_db_out --> product_db
+
+' Services to Cache
+user_service --> cache : "Cache user data"
+auth_service --> cache : "Store sessions"
+product_service --> cache : "Cache products"
+
+' Search and Analytics
+product_search_out --> search
+order_service --> analytics : "Export data"
+user_service --> analytics
+
+' External Services
+payment_service --> stripe
+notification_service --> sendgrid
+notification_service --> twilio
+user_service --> s3 : "Upload avatars"
+web_ui --> cdn : "Static assets"
+
+' Shared Libraries
+user_service ..> common_utils : uses
+auth_service ..> common_utils
+order_service ..> common_utils
+product_service ..> common_utils
+payment_service ..> common_utils
+
+user_service ..> logging_lib
+auth_service ..> logging_lib
+order_service ..> logging_lib
+
+user_service ..> validation_lib
+order_service ..> validation_lib
+product_service ..> validation_lib
+
+' Infrastructure
+gateway ..> monitoring : "metrics"
+user_service ..> monitoring
+auth_service ..> monitoring
+order_service ..> monitoring
+product_service ..> monitoring
+payment_service ..> monitoring
+
+user_service ..> elk : "logs"
+auth_service ..> elk
+order_service ..> elk
+
+user_service ..> tracing : "traces"
+order_service ..> tracing
+payment_service ..> tracing
+
+user_service ..> consul : "register"
+auth_service ..> consul
+order_service ..> consul
+product_service ..> consul
+
+' Notes
+note right of gateway
+  **API Gateway Responsibilities**
+  - Authentication & Authorization
+  - Rate limiting & throttling
+  - Request/Response transformation
+  - Load balancing
+  - Circuit breaker pattern
+  - API versioning
+  - CORS handling
+end note
+
+note right of message_bus
+  **Event-Driven Architecture**
+  - Async communication
+  - Event sourcing
+  - Saga pattern for distributed transactions
+  - Event replay capability
+  
+  **Topics:**
+  - order.created
+  - order.updated
+  - payment.processed
+  - user.registered
+end note
+
+note bottom of cache
+  **Caching Strategy**
+  - Cache-aside pattern
+  - Write-through for critical data
+  - TTL: 1 hour (configurable)
+  - Eviction: LRU
+  - Fallback to DB on cache miss
+end note
+
+note right of auth_service
+  **Authentication Methods**
+  - JWT tokens
+  - OAuth 2.0 (Google, Facebook)
+  - API Keys
+  - Session-based (legacy)
+  
+  **Security:**
+  - Bcrypt password hashing
+  - Token refresh mechanism
+  - Brute force protection
+end note
+
+legend right
+  |= **Technology Stack** |
+  | Language | Framework | Database |
+  | <back:#68A063>Node.js</back> | Express | PostgreSQL |
+  | <back:#68A063>Java</back> | Spring Boot | MongoDB |
+  | <back:#68A063>Python</back> | FastAPI | Redis |
+  
+  **Communication Patterns:**
+  → Synchronous (REST/gRPC)
+  ..> Dependency
+  --> Data flow
+  
+  **Ports:**
+  ○ Input port (provided interface)
+  ◉ Output port (required interface)
+endlegend
+
+footer
+  Component Architecture v1.0
+  Last Updated: [Date]
+  Architecture Style: Microservices
+  Deployment: Kubernetes
+end footer
+
+@enduml

@@ -1,0 +1,272 @@
+@startgantt Project Gantt Chart Template
+' Project Gantt Chart Template
+' Author: [Your Name]
+' Date: [Date]
+' Description: Template for project timeline and task scheduling
+
+<style>
+ganttDiagram {
+    task {
+        FontColor white
+        BackGroundColor #4A90E2
+    }
+    milestone {
+        FontColor black
+        BackGroundColor gold
+    }
+    note {
+        FontColor DarkGreen
+        BackGroundColor LightGreen
+    }
+}
+</style>
+
+' Project configuration
+title Project Timeline - [Project Name]
+Project starts 2024-01-01
+printscale weekly
+saturday are closed
+sunday are closed
+
+' Holidays (optional)
+2024-01-01 is closed
+2024-07-04 is closed
+2024-12-25 is closed
+
+' Define sections
+-- Phase 1: Planning & Discovery --
+
+[Project Kickoff] as [KICKOFF] lasts 1 days
+[KICKOFF] is colored in Gold
+note bottom
+  **Kickoff Meeting**
+  - Stakeholder introduction
+  - Project charter review
+  - Communication plan
+  - RACI matrix
+end note
+
+[Requirements Gathering] as [REQ] lasts 10 days
+[REQ] starts at [KICKOFF]'s end
+[REQ] is 100% completed
+note bottom
+  Deliverables:
+  - Business requirements
+  - User stories
+  - Acceptance criteria
+end note
+
+[Stakeholder Interviews] as [INTERVIEWS] lasts 5 days
+[INTERVIEWS] starts at [KICKOFF]'s end
+[INTERVIEWS] is 100% completed
+
+[Requirements Analysis] as [ANALYSIS] lasts 5 days
+[ANALYSIS] starts at [INTERVIEWS]'s end
+[ANALYSIS] is 100% completed
+
+[Requirements Sign-off] as [REQ_MILESTONE] happens at [REQ]'s end
+[REQ_MILESTONE] is colored in Gold
+
+-- Phase 2: Design --
+
+[Architecture Design] as [ARCH] lasts 10 days
+[ARCH] starts at [REQ_MILESTONE]'s end
+[ARCH] is 100% completed
+[ARCH] is colored in Coral
+
+[Database Design] as [DB_DESIGN] lasts 7 days
+[DB_DESIGN] starts at [ARCH]'s start
+[DB_DESIGN] is 100% completed
+
+[UI/UX Design] as [UI_DESIGN] lasts 15 days
+[UI_DESIGN] starts at [ARCH]'s start
+[UI_DESIGN] is 100% completed
+
+[API Design] as [API_DESIGN] lasts 5 days
+[API_DESIGN] starts at [ARCH]'s end
+[API_DESIGN] is 100% completed
+
+[Design Review] as [DESIGN_REVIEW] happens at [UI_DESIGN]'s end
+[DESIGN_REVIEW] displays on same row as [REQ_MILESTONE]
+[DESIGN_REVIEW] is colored in Gold
+
+-- Phase 3: Development --
+
+[Development Environment Setup] as [DEV_ENV] lasts 3 days
+[DEV_ENV] starts at [DESIGN_REVIEW]'s end
+[DEV_ENV] is 100% completed
+[DEV_ENV] is colored in LightBlue
+
+[Backend Development] as [BACKEND] lasts 30 days
+[BACKEND] starts at [DEV_ENV]'s end
+[BACKEND] is 60% completed
+[BACKEND] is colored in LightBlue
+
+[Database Implementation] as [DB_IMPL] lasts 10 days
+[DB_IMPL] starts at [DEV_ENV]'s end
+[DB_IMPL] is 70% completed
+[DB_IMPL] is colored in LightBlue
+
+[API Development] as [API_DEV] lasts 20 days
+[API_DEV] starts at [DB_IMPL]'s end
+[API_DEV] is 40% completed
+[API_DEV] is colored in LightBlue
+
+[Frontend Development] as [FRONTEND] lasts 25 days
+[FRONTEND] starts at [API_DEV]'s start
+[FRONTEND] is 30% completed
+[FRONTEND] is colored in LightBlue
+
+[Integration] as [INTEGRATION] lasts 10 days
+[INTEGRATION] starts at [FRONTEND]'s end
+[INTEGRATION] is 0% completed
+[INTEGRATION] is colored in LightBlue
+[INTEGRATION] links to [[https://jira.example.com/PROJ-123 Jira Ticket]]
+
+[Code Complete] as [CODE_COMPLETE] happens at [INTEGRATION]'s end
+[CODE_COMPLETE] displays on same row as [REQ_MILESTONE]
+[CODE_COMPLETE] is colored in Gold
+
+-- Phase 4: Testing --
+
+[Unit Testing] as [UNIT_TEST] lasts 20 days
+[UNIT_TEST] starts at [BACKEND]'s start
+[UNIT_TEST] ends at [BACKEND]'s end
+[UNIT_TEST] is 50% completed
+[UNIT_TEST] is colored in LightGreen
+
+[Integration Testing] as [INT_TEST] lasts 10 days
+[INT_TEST] starts at [CODE_COMPLETE]'s end
+[INT_TEST] is 0% completed
+[INT_TEST] is colored in LightGreen
+
+[UAT Preparation] as [UAT_PREP] lasts 5 days
+[UAT_PREP] starts at [INT_TEST]'s end
+[UAT_PREP] is 0% completed
+
+[User Acceptance Testing] as [UAT] lasts 15 days
+[UAT] starts at [UAT_PREP]'s end
+[UAT] is 0% completed
+[UAT] is colored in LightGreen
+
+[Performance Testing] as [PERF_TEST] lasts 5 days
+[PERF_TEST] starts at [INT_TEST]'s end
+[PERF_TEST] is 0% completed
+[PERF_TEST] is colored in LightGreen
+
+[Security Testing] as [SEC_TEST] lasts 5 days
+[SEC_TEST] starts at [INT_TEST]'s end
+[SEC_TEST] is 0% completed
+[SEC_TEST] is colored in LightGreen
+
+[Bug Fixes] as [BUG_FIX] lasts 10 days
+[BUG_FIX] starts at [UAT]'s end
+[BUG_FIX] is 0% completed
+[BUG_FIX] is colored in Pink
+
+[Testing Complete] as [TEST_COMPLETE] happens at [BUG_FIX]'s end
+[TEST_COMPLETE] displays on same row as [REQ_MILESTONE]
+[TEST_COMPLETE] is colored in Gold
+
+-- Phase 5: Deployment --
+
+[Deployment Planning] as [DEPLOY_PLAN] lasts 5 days
+[DEPLOY_PLAN] starts at [TEST_COMPLETE]'s end
+[DEPLOY_PLAN] is 0% completed
+[DEPLOY_PLAN] is colored in Orange
+
+[Infrastructure Setup] as [INFRA] lasts 5 days
+[INFRA] starts at [DEPLOY_PLAN]'s start
+[INFRA] is 0% completed
+[INFRA] is colored in Orange
+
+[Staging Deployment] as [STAGING] lasts 2 days
+[STAGING] starts at [DEPLOY_PLAN]'s end
+[STAGING] is 0% completed
+[STAGING] is colored in Orange
+
+[Staging Verification] as [STAGE_VERIFY] lasts 3 days
+[STAGE_VERIFY] starts at [STAGING]'s end
+[STAGE_VERIFY] is 0% completed
+
+[Production Deployment] as [PROD] lasts 1 days
+[PROD] starts at [STAGE_VERIFY]'s end
+[PROD] is 0% completed
+[PROD] is colored in Orange
+
+[Smoke Testing] as [SMOKE] lasts 1 days
+[SMOKE] starts at [PROD]'s end
+[SMOKE] is 0% completed
+
+[Go-Live] as [GOLIVE] happens at [SMOKE]'s end
+[GOLIVE] displays on same row as [REQ_MILESTONE]
+[GOLIVE] is colored in Red
+note bottom
+  **Production Release**
+  - Monitoring enabled
+  - Support team on standby
+  - Communication plan activated
+end note
+
+-- Phase 6: Post-Launch --
+
+[Hypercare Support] as [HYPERCARE] lasts 14 days
+[HYPERCARE] starts at [GOLIVE]'s end
+[HYPERCARE] is 0% completed
+[HYPERCARE] is colored in LightYellow
+
+[User Training] as [TRAINING] lasts 10 days
+[TRAINING] starts at [GOLIVE]'s end
+[TRAINING] is 0% completed
+
+[Documentation] as [DOCS] lasts 15 days
+[DOCS] starts at [CODE_COMPLETE]'s end
+[DOCS] is 0% completed
+
+[Knowledge Transfer] as [KT] lasts 5 days
+[KT] starts at [GOLIVE]'s end
+[KT] is 0% completed
+
+[Project Closure] as [CLOSURE] happens at [HYPERCARE]'s end
+[CLOSURE] displays on same row as [REQ_MILESTONE]
+[CLOSURE] is colored in Gold
+
+' Define resource allocation
+[BACKEND] on {Developer1} {Developer2} {Developer3} lasts 30 days
+[FRONTEND] on {Developer4} {Developer5} lasts 25 days
+[UAT] on {QA1} {QA2} {BusinessAnalyst} lasts 15 days
+
+' Caption and footer
+caption Project Schedule - [Project Name]\nGenerated: [Date]
+
+legend right
+  |= **Legend** |= **Status** |
+  | <back:LightBlue>Color</back> | Development |
+  | <back:LightGreen>Color</back> | Testing |
+  | <back:Orange>Color</back> | Deployment |
+  | <back:Gold>Color</back> | Milestone |
+  | <back:Pink>Color</back> | Bug Fixes |
+  
+  **Team:**
+  - Project Manager: [Name]
+  - Tech Lead: [Name]
+  - Developers: [Count]
+  - QA Engineers: [Count]
+  
+  **Key Dates:**
+  - Project Start: [Date]
+  - Expected Go-Live: [Date]
+  - Duration: [Weeks] weeks
+  
+  **Critical Path:**
+  REQ → ARCH → BACKEND → INTEGRATION
+  → UAT → DEPLOY → GOLIVE
+endlegend
+
+footer
+  Project Timeline v1.0
+  Last Updated: [Date]
+  Status: [On Track / At Risk / Delayed]
+end footer
+
+@endgantt

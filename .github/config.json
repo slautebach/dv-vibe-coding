@@ -1,0 +1,21 @@
+{
+  "// comments for: dataverse_environments": {
+    "// CONFIGURATION FILE FOR DATAVERSE ENVIRONMENTS": "Copy this file to config.json and update with your environment details",
+    "// SECURITY NOTE": "Do NOT store client secrets in this file. Pass them via CLI arguments or environment variables.",
+
+    "// FIELD DESCRIPTIONS": {
+      "environment_url": "The full URL to your Dataverse environment (e.g., https://orgname.crm.dynamics.com)",
+      "tenant_id": "Your Azure AD tenant ID (GUID). Default for Saskatchewan Government: fbef0798-20e3-4be7-bdc8-372032610f65",
+      "app_id": "Optional: Application (Client) ID for service principal authentication. Leave as null for interactive browser authentication.",
+      "description": "Human-readable description of the environment"
+    }
+  },
+  "dataverse_environments": {
+    "dev": {
+      "environment_url": "https://org.crm3.dynamics.com/",
+      "tenant_id": "tenant",
+      "description": "Development environment",
+      "app_id": null
+    }
+  }
+}

@@ -1,0 +1,355 @@
+@startuml Domain Model Class Diagram Template
+' Domain Model Class Diagram Template
+' Author: [Your Name]
+' Date: [Date]
+' Description: Template for object-oriented domain modeling
+
+!theme spacelab
+title Domain Model - [Domain Name]
+
+' Abstract base classes
+abstract class Entity {
+    # id: UUID
+    # createdAt: DateTime
+    # updatedAt: DateTime
+    # version: int
+    --
+    + equals(other: Entity): boolean
+    + hashCode(): int
+    # beforeCreate(): void
+    # beforeUpdate(): void
+}
+
+abstract class AggregateRoot extends Entity {
+    - domainEvents: List<DomainEvent>
+    --
+    + addDomainEvent(event: DomainEvent): void
+    + clearDomainEvents(): void
+    + getDomainEvents(): List<DomainEvent>
+}
+
+abstract class ValueObject {
+    + equals(other: ValueObject): boolean
+    + hashCode(): int
+    + toString(): String
+}
+
+' Domain Entities
+class User extends AggregateRoot {
+    - email: Email
+    - username: Username
+    - profile: UserProfile
+    - roles: Set<Role>
+    - status: UserStatus
+    --
+    + User(email: Email, username: Username)
+    + changeEmail(newEmail: Email): void
+    + updateProfile(profile: UserProfile): void
+    + assignRole(role: Role): void
+    + removeRole(role: Role): void
+    + activate(): void
+    + deactivate(): void
+    + hasRole(role: Role): boolean
+    + hasPermission(permission: Permission): boolean
+}
+
+class Order extends AggregateRoot {
+    - orderNumber: OrderNumber
+    - customer: Customer
+    - items: List<OrderItem>
+    - status: OrderStatus
+    - shippingAddress: Address
+    - billingAddress: Address
+    - totalAmount: Money
+    - placedAt: DateTime
+    - confirmedAt: DateTime
+    --
+    + Order(customer: Customer, items: List<OrderItem>)
+    + addItem(product: Product, quantity: Quantity): void
+    + removeItem(lineItemId: UUID): void
+    + updateQuantity(lineItemId: UUID, quantity: Quantity): void
+    + calculateTotal(): Money
+    + confirm(): void
+    + cancel(): void
+    + ship(): void
+    + complete(): void
+    + canBeCancelled(): boolean
+    - validateOrder(): void
+}
+
+class OrderItem extends Entity {
+    - product: Product
+    - quantity: Quantity
+    - unitPrice: Money
+    - discount: Money
+    --
+    + OrderItem(product: Product, quantity: Quantity)
+    + getSubtotal(): Money
+    + getTotalDiscount(): Money
+    + getTotal(): Money
+    + changeQuantity(newQuantity: Quantity): void
+    + applyDiscount(discount: Money): void
+}
+
+class Product extends AggregateRoot {
+    - sku: SKU
+    - name: String
+    - description: String
+    - category: Category
+    - price: Money
+    - inventory: Inventory
+    - images: List<Image>
+    --
+    + Product(sku: SKU, name: String, price: Money)
+    + changeName(newName: String): void
+    + changePrice(newPrice: Money): void
+    + updateInventory(quantity: int): void
+    + reserveStock(quantity: Quantity): void
+    + releaseStock(quantity: Quantity): void
+    + isAvailable(): boolean
+    + isInStock(): boolean
+}
+
+class Customer extends AggregateRoot {
+    - firstName: String
+    - lastName: String
+    - email: Email
+    - phone: PhoneNumber
+    - addresses: List<Address>
+    - preferredPaymentMethod: PaymentMethod
+    --
+    + Customer(email: Email, firstName: String, lastName: String)
+    + getFullName(): String
+    + addAddress(address: Address): void
+    + removeAddress(addressId: UUID): void
+    + setDefaultAddress(addressId: UUID): void
+    + getDefaultAddress(): Address
+}
+
+' Value Objects
+class Email extends ValueObject {
+    - value: String
+    --
+    + Email(email: String)
+    + getValue(): String
+    - validate(): void
+    {static} + isValid(email: String): boolean
+}
+
+class Money extends ValueObject {
+    - amount: BigDecimal
+    - currency: Currency
+    --
+    + Money(amount: BigDecimal, currency: Currency)
+    + add(other: Money): Money
+    + subtract(other: Money): Money
+    + multiply(factor: BigDecimal): Money
+    + divide(divisor: BigDecimal): Money
+    + isPositive(): boolean
+    + isNegative(): boolean
+    + isZero(): boolean
+    + greaterThan(other: Money): boolean
+    - assertSameCurrency(other: Money): void
+}
+
+class Address extends ValueObject {
+    - street: String
+    - city: String
+    - state: String
+    - postalCode: String
+    - country: String
+    --
+    + Address(street, city, state, postalCode, country)
+    + getFormattedAddress(): String
+    + isSameCountry(other: Address): boolean
+}
+
+class Quantity extends ValueObject {
+    - value: int
+    --
+    + Quantity(value: int)
+    + getValue(): int
+    + add(other: Quantity): Quantity
+    + subtract(other: Quantity): Quantity
+    + multiply(factor: int): Quantity
+    + isPositive(): boolean
+}
+
+class SKU extends ValueObject {
+    - value: String
+    --
+    + SKU(value: String)
+    + getValue(): String
+    - validate(): void
+}
+
+' Enumerations
+enum OrderStatus {
+    PENDING
+    CONFIRMED
+    PROCESSING
+    SHIPPED
+    DELIVERED
+    CANCELLED
+    REFUNDED
+    --
+    + canTransitionTo(newStatus: OrderStatus): boolean
+    + isTerminal(): boolean
+}
+
+enum UserStatus {
+    ACTIVE
+    INACTIVE
+    SUSPENDED
+    DELETED
+}
+
+enum Currency {
+    USD
+    EUR
+    GBP
+    CAD
+    --
+    + getSymbol(): String
+    + getDisplayName(): String
+}
+
+' Domain Services (optional)
+class OrderService <<Service>> {
+    - orderRepository: OrderRepository
+    - productRepository: ProductRepository
+    - eventPublisher: EventPublisher
+    --
+    + createOrder(customer: Customer, items: List<OrderItem>): Order
+    + cancelOrder(orderId: UUID, reason: String): void
+    + confirmPayment(orderId: UUID, payment: Payment): void
+    - validateInventory(items: List<OrderItem>): void
+    - reserveInventory(items: List<OrderItem>): void
+}
+
+' Repositories (interfaces)
+interface OrderRepository <<Repository>> {
+    + findById(id: UUID): Optional<Order>
+    + findByOrderNumber(orderNumber: OrderNumber): Optional<Order>
+    + findByCustomer(customerId: UUID): List<Order>
+    + save(order: Order): Order
+    + delete(order: Order): void
+}
+
+interface ProductRepository <<Repository>> {
+    + findById(id: UUID): Optional<Product>
+    + findBySku(sku: SKU): Optional<Product>
+    + findByCategory(category: Category): List<Product>
+    + save(product: Product): Product
+}
+
+' Domain Events
+abstract class DomainEvent {
+    - eventId: UUID
+    - occurredAt: DateTime
+    - aggregateId: UUID
+    --
+    + getEventId(): UUID
+    + getOccurredAt(): DateTime
+}
+
+class OrderPlacedEvent extends DomainEvent {
+    - orderId: UUID
+    - customerId: UUID
+    - orderNumber: OrderNumber
+    - totalAmount: Money
+}
+
+class OrderCancelledEvent extends DomainEvent {
+    - orderId: UUID
+    - reason: String
+}
+
+' Relationships
+User "1" -- "0..*" Order : places
+Order "1" *-- "1..*" OrderItem : contains
+OrderItem "1" -- "1" Product : references
+Order "1" -- "1" Customer : belongs to
+Order "1" -- "2" Address : shipping/billing
+Customer "1" *-- "0..*" Address : has
+
+Order -- OrderStatus : has
+User -- UserStatus : has
+Money -- Currency : denominated in
+
+OrderItem -- Quantity : has
+OrderItem -- Money : unit price
+Product -- Money : price
+
+User -- Email : identified by
+Customer -- Email : contact
+
+' Service dependencies
+OrderService ..> OrderRepository : uses
+OrderService ..> ProductRepository : uses
+OrderService ..> Order : creates/manages
+
+' Event relationships
+Order ..> OrderPlacedEvent : publishes
+Order ..> OrderCancelledEvent : publishes
+
+' Notes
+note right of Entity
+    **Base Entity Class**
+    - Identity equality
+    - Audit fields
+    - Lifecycle hooks
+    - Optimistic locking
+end note
+
+note right of AggregateRoot
+    **Aggregate Root Pattern**
+    - Transactional boundary
+    - Consistency boundary
+    - Domain event publishing
+    - Invariant enforcement
+end note
+
+note right of Money
+    **Money Value Object**
+    - Immutable
+    - Currency-safe operations
+    - Precision handling
+    - No primitive obsession
+end note
+
+note bottom of OrderStatus
+    **State Machine**
+    Valid transitions:
+    PENDING → CONFIRMED → PROCESSING
+    → SHIPPED → DELIVERED
+    
+    Any state → CANCELLED
+    DELIVERED → REFUNDED
+end note
+
+legend right
+  |= **Legend** |
+  | + | Public |
+  | - | Private |
+  | # | Protected |
+  | ~ | Package |
+  | {static} | Static |
+  | {abstract} | Abstract |
+  
+  **Patterns Used:**
+  - Aggregate Root
+  - Value Object
+  - Domain Event
+  - Repository
+  - Domain Service
+  - Specification
+endlegend
+
+footer
+  Domain Model v1.0
+  Last Updated: [Date]
+  Based on Domain-Driven Design principles
+end footer
+
+@enduml

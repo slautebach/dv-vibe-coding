@@ -1,0 +1,208 @@
+@startuml AWS Architecture Template
+' AWS Cloud Architecture Template
+' Author: [Your Name]
+' Date: [Date]
+' Description: Template for AWS cloud infrastructure diagrams
+
+' Include AWS icon library
+!include <awslib/AWSCommon>
+!include <awslib/Compute/EC2>
+!include <awslib/Compute/Lambda>
+!include <awslib/Compute/ECS>
+!include <awslib/Compute/AutoScaling>
+!include <awslib/Database/RDS>
+!include <awslib/Database/DynamoDB>
+!include <awslib/Database/ElastiCache>
+!include <awslib/Storage/S3>
+!include <awslib/Storage/EBS>
+!include <awslib/NetworkingContentDelivery/CloudFront>
+!include <awslib/NetworkingContentDelivery/Route53>
+!include <awslib/NetworkingContentDelivery/APIGateway>
+!include <awslib/NetworkingContentDelivery/VPC>
+!include <awslib/NetworkingContentDelivery/ElasticLoadBalancing>
+!include <awslib/SecurityIdentityCompliance/IAM>
+!include <awslib/SecurityIdentityCompliance/Cognito>
+!include <awslib/SecurityIdentityCompliance/SecretsManager>
+!include <awslib/ManagementGovernance/CloudWatch>
+!include <awslib/ApplicationIntegration/SQS>
+!include <awslib/ApplicationIntegration/SNS>
+
+title AWS Cloud Architecture - [Application Name]
+
+' External Users
+actor "End User" as user
+actor "Developer" as dev
+
+' DNS and CDN Layer
+Route53(dns, "Route 53", "DNS Management")
+CloudFront(cdn, "CloudFront", "CDN & WAF")
+
+' API Layer
+APIGateway(api, "API Gateway", "REST/WebSocket")
+Cognito(cognito, "Cognito", "User Pool")
+
+' VPC Configuration
+VPC(vpc, "VPC", "10.0.0.0/16") {
+    
+    ' Public Subnet
+    package "Public Subnet\n10.0.1.0/24" {
+        ElasticLoadBalancing(alb, "Application\nLoad Balancer", "ALB")
+    }
+    
+    ' Private Subnet - Application
+    package "Private Subnet (App)\n10.0.2.0/24" {
+        AutoScaling(asg, "Auto Scaling\nGroup", "2-10 instances")
+        EC2(ec2_1, "EC2 Instance", "t3.medium")
+        EC2(ec2_2, "EC2 Instance", "t3.medium")
+        
+        ECS(ecs, "ECS Cluster", "Fargate")
+    }
+    
+    ' Private Subnet - Database
+    package "Private Subnet (Data)\n10.0.3.0/24" {
+        RDS(rds, "RDS PostgreSQL", "Multi-AZ")
+        ElastiCache(cache, "ElastiCache", "Redis Cluster")
+        DynamoDB(dynamo, "DynamoDB", "NoSQL Tables")
+    }
+}
+
+' Storage
+S3(s3_static, "S3 Bucket", "Static Assets")
+S3(s3_data, "S3 Bucket", "User Uploads")
+S3(s3_backup, "S3 Bucket", "Backups")
+
+' Serverless Functions
+Lambda(lambda_auth, "Lambda", "Auth Function")
+Lambda(lambda_process, "Lambda", "Data Processor")
+Lambda(lambda_resize, "Lambda", "Image Resize")
+
+' Message Queue
+SQS(queue, "SQS Queue", "Task Queue")
+SNS(topic, "SNS Topic", "Notifications")
+
+' Monitoring & Security
+CloudWatch(cw, "CloudWatch", "Logs & Metrics")
+IAM(iam, "IAM", "Roles & Policies")
+SecretsManager(secrets, "Secrets Manager", "API Keys & Creds")
+
+' User Flow
+user --> dns : "Resolve domain"
+dns --> cdn : "Route traffic"
+cdn --> alb : "HTTPS"
+
+' Developer Access
+dev --> iam : "Authenticate"
+
+' Frontend to Backend
+cdn --> s3_static : "Serve static files"
+cdn --> api : "API requests"
+
+' API Authentication
+api --> cognito : "Validate token"
+api --> lambda_auth : "Custom auth"
+
+' Load Balancing
+alb --> ec2_1 : "Distribute load"
+alb --> ec2_2
+asg ..> ec2_1 : "manages"
+asg ..> ec2_2
+
+' Application to Services
+ec2_1 --> cache : "Cache lookup"
+ec2_2 --> cache
+ec2_1 --> rds : "Read/Write"
+ec2_2 --> rds
+ecs --> dynamo : "NoSQL operations"
+
+' Async Processing
+ec2_1 --> queue : "Enqueue tasks"
+queue --> lambda_process : "Trigger processing"
+lambda_process --> s3_data : "Store results"
+
+' File Upload Flow
+api --> s3_data : "Upload files"
+s3_data --> lambda_resize : "S3 trigger"
+lambda_resize --> s3_data : "Save thumbnails"
+
+' Notifications
+lambda_process --> topic : "Publish events"
+topic --> user : "Email/SMS"
+
+' Monitoring
+ec2_1 ..> cw : "Send logs/metrics"
+ec2_2 ..> cw
+lambda_auth ..> cw
+lambda_process ..> cw
+alb ..> cw
+
+' Security
+ec2_1 ..> secrets : "Fetch secrets"
+lambda_process ..> secrets
+iam ..> ec2_1 : "Instance role"
+iam ..> lambda_auth : "Execution role"
+iam ..> lambda_process
+
+' Backup
+rds --> s3_backup : "Automated backups"
+dynamo --> s3_backup : "Point-in-time recovery"
+
+' Notes
+note right of vpc
+  **Network Configuration**
+  - Multi-AZ deployment
+  - NAT Gateway for private subnets
+  - Network ACLs configured
+  - VPC Flow Logs enabled
+end note
+
+note right of rds
+  **Database Configuration**
+  - PostgreSQL 14
+  - Multi-AZ: Yes
+  - Automated backups: 7 days
+  - Encryption at rest: Yes
+  - Read replicas: 2
+end note
+
+note right of alb
+  **Load Balancer Settings**
+  - Health checks enabled
+  - SSL/TLS termination
+  - Sticky sessions
+  - WAF rules attached
+end note
+
+note right of asg
+  **Auto Scaling Policy**
+  - Min: 2 instances
+  - Max: 10 instances
+  - Target CPU: 70%
+  - Scale-in: 5 min cooldown
+end note
+
+legend right
+  |= **Resource Tags** |=
+  | Environment | Production |
+  | Application | [App Name] |
+  | CostCenter | [Department] |
+  | ManagedBy | Terraform |
+  
+  **Regions:**
+  - Primary: us-east-1
+  - DR: us-west-2
+  
+  **Availability Zones:**
+  - AZ-A: 10.0.1.0/24, 10.0.2.0/24
+  - AZ-B: 10.0.11.0/24, 10.0.12.0/24
+  
+  **Estimated Monthly Cost:**
+  $[Cost] (based on [assumptions])
+endlegend
+
+footer
+  AWS Architecture v1.0
+  Last Updated: [Date]
+  Deployed via: [Terraform/CloudFormation/CDK]
+end footer
+
+@enduml

@@ -1,0 +1,152 @@
+@startuml Microservices Architecture Template
+' Microservices Architecture Template
+' Author: [Your Name]
+' Date: [Date]
+' Description: Template for documenting microservices architecture
+
+!theme aws-orange
+title Microservices Architecture
+
+' Define color scheme
+!define SERVICE_COLOR #4A90E2
+!define DATABASE_COLOR #50C878
+!define EXTERNAL_COLOR #FFA500
+!define GATEWAY_COLOR #9B59B6
+
+' Client Layer
+actor "User" as user
+actor "Admin" as admin
+
+package "Client Applications" EXTERNAL_COLOR {
+  [Web Application] as web
+  [Mobile App] as mobile
+  [Admin Portal] as adminweb
+}
+
+' API Gateway Layer
+package "API Gateway" GATEWAY_COLOR {
+  [Kong Gateway] as gateway
+  [Auth Middleware] as auth
+}
+
+' Service Layer
+package "Microservices" {
+  ' Core Services
+  component [User Service] SERVICE_COLOR as user_svc
+  component [Auth Service] SERVICE_COLOR as auth_svc
+  component [Order Service] SERVICE_COLOR as order_svc
+  component [Product Service] SERVICE_COLOR as product_svc
+  component [Payment Service] SERVICE_COLOR as payment_svc
+  component [Notification Service] SERVICE_COLOR as notif_svc
+  
+  ' Message Queue
+  queue "Message Broker\n(RabbitMQ/Kafka)" as mq
+}
+
+' Data Layer
+package "Data Stores" {
+  database "User DB\n(PostgreSQL)" DATABASE_COLOR as user_db
+  database "Auth DB\n(PostgreSQL)" DATABASE_COLOR as auth_db
+  database "Order DB\n(MongoDB)" DATABASE_COLOR as order_db
+  database "Product DB\n(PostgreSQL)" DATABASE_COLOR as product_db
+  database "Cache\n(Redis)" DATABASE_COLOR as cache
+}
+
+' External Services
+package "External Services" EXTERNAL_COLOR {
+  cloud "Payment Gateway\n(Stripe)" as stripe
+  cloud "Email Service\n(SendGrid)" as email
+  cloud "SMS Service\n(Twilio)" as sms
+}
+
+' Client to Gateway connections
+user --> web
+user --> mobile
+admin --> adminweb
+
+web --> gateway
+mobile --> gateway
+adminweb --> gateway
+
+' Gateway to Services
+gateway --> auth
+auth --> auth_svc
+gateway --> user_svc
+gateway --> order_svc
+gateway --> product_svc
+gateway --> payment_svc
+
+' Service to Service
+order_svc --> user_svc : "verify user"
+order_svc --> product_svc : "check inventory"
+payment_svc --> order_svc : "confirm order"
+
+' Service to Message Queue
+order_svc --> mq : "publish order events"
+payment_svc --> mq : "publish payment events"
+mq --> notif_svc : "consume events"
+
+' Service to Database
+user_svc --> user_db
+auth_svc --> auth_db
+order_svc --> order_db
+product_svc --> product_db
+user_svc --> cache : "cache user data"
+product_svc --> cache : "cache product data"
+
+' Service to External
+payment_svc --> stripe : "process payments"
+notif_svc --> email : "send emails"
+notif_svc --> sms : "send SMS"
+
+' Notes for documentation
+note right of gateway
+  **API Gateway**
+  - Rate limiting
+  - Request routing
+  - Load balancing
+  - Circuit breaker
+end note
+
+note right of mq
+  **Event-Driven Architecture**
+  - Async communication
+  - Pub/Sub pattern
+  - Event sourcing
+  - CQRS ready
+end note
+
+note bottom of cache
+  **Caching Strategy**
+  - User sessions
+  - Product catalog
+  - Read-through cache
+  - TTL: 1 hour
+end note
+
+legend right
+  |= **Service Status** |
+  | <back:#4A90E2>Color</back> | Microservice |
+  | <back:#50C878>Color</back> | Database |
+  | <back:#FFA500>Color</back> | External |
+  | <back:#9B59B6>Color</back> | Gateway |
+  
+  **Communication Patterns:**
+  ---
+  → Synchronous (REST/gRPC)
+  
+  **Port Mappings:**
+  - Gateway: 8080
+  - Auth Service: 8081
+  - User Service: 8082
+  - Order Service: 8083
+  - Product Service: 8084
+  - Payment Service: 8085
+endlegend
+
+footer
+  Microservices Architecture v1.0
+  Last Updated: [Date]
+end footer
+
+@enduml

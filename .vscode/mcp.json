@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "microsoft-learn": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-http",
+        "--url",
+        "https://learn.microsoft.com/api/mcp"
+      ]
+    }
+  }
+}

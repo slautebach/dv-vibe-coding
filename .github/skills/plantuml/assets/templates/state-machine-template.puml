@@ -1,0 +1,214 @@
+@startuml State Machine Template
+' State Machine Diagram Template
+' Author: [Your Name]
+' Date: [Date]
+' Description: Template for documenting state machines and workflows
+
+!theme materia
+title State Machine - [Entity/Process Name]
+
+' Define states with internal behaviors
+state "Draft" as draft {
+    draft : entry / initializeDocument()
+    draft : do / autosave()
+    draft : exit / validateMinimumData()
+    --
+    [*] --> Editing
+    Editing --> Editing : modificationsDetected
+}
+
+state "Under Review" as review {
+    review : entry / notifyReviewers()
+    review : do / trackReviewTime()
+    review : exit / closeReviewSession()
+    --
+    [*] --> AwaitingReview
+    AwaitingReview --> InReview : reviewerAssigned
+    InReview --> AwaitingApproval : reviewCompleted
+    AwaitingApproval --> [*]
+}
+
+state "Published" as published {
+    published : entry / publishToProduction()
+    published : do / trackViews()
+    --
+    [*] --> Live
+    state "Live" as live
+    state "Unpublished" as unpublished
+    
+    live --> unpublished : unpublish
+    unpublished --> live : republish
+}
+
+state "Archived" as archived {
+    archived : entry / moveToArchive()
+    archived : do / compressData()
+}
+
+' Fork and join for parallel processing
+state fork_state <<fork>>
+state join_state <<join>>
+
+state "Parallel Processing" as parallel {
+    [*] --> fork_state
+    fork_state --> ValidationCheck
+    fork_state --> SecurityScan
+    fork_state --> QualityAssurance
+    
+    ValidationCheck --> join_state
+    SecurityScan --> join_state
+    QualityAssurance --> join_state
+    
+    join_state --> [*]
+}
+
+' Initial and final states
+[*] --> draft : create
+
+' Transitions with guards and actions
+draft --> review : submit\n[isComplete && hasContent]\n/ notifyReviewers()
+review --> draft : requestChanges\n[reviewerFeedback]\n/ createActionItems()
+review --> parallel : approve\n[allReviewersApproved]
+parallel --> published : allChecksPassed\n/ generateVersion()
+
+' Conditional transitions
+published --> archived : archive\n[daysInactive > 90]\n/ notifyOwner()
+published --> draft : unpublishAndEdit\n/ createNewDraft()
+
+' Self-transitions
+draft --> draft : autoSave\n[every 30 seconds]
+published --> published : updateMetadata\n/ refreshTimestamp()
+
+' Error handling
+draft --> [*] : delete\n/ confirmDeletion()
+review --> [*] : reject\n[criticalIssues]\n/ notifyAuthor()
+
+' Transition to archive
+archived --> [*] : permanentDelete\n[after 1 year]\n/ secureWipe()
+
+' Choice pseudo-state
+state choice_state <<choice>>
+review --> choice_state
+choice_state --> published : [minorChanges]
+choice_state --> draft : [majorChanges]
+
+' History pseudo-state (remember last sub-state)
+state review {
+    state deep_history <<history,type=deep>>
+}
+
+' Notes for documentation
+note right of draft
+  **Draft State**
+  - Document can be freely edited
+  - Auto-save enabled
+  - No version control yet
+  - Owner: Document creator
+  
+  **Entry Conditions:**
+  - User must be authenticated
+  - Project must be active
+end note
+
+note right of review
+  **Review Process**
+  - Minimum 2 reviewers required
+  - 48-hour review SLA
+  - Comments tracked in audit log
+  - Email notifications sent
+  
+  **Possible Outcomes:**
+  - Approve (requires all reviewers)
+  - Request Changes
+  - Reject (requires reason)
+end note
+
+note right of parallel
+  **Automated Checks**
+  Runs in parallel:
+  1. **Validation Check**
+     - Schema validation
+     - Required fields
+     - Data integrity
+  
+  2. **Security Scan**
+     - Sensitive data detection
+     - Access control check
+     - Compliance verification
+  
+  3. **QA**
+     - Link validation
+     - Asset availability
+     - Performance test
+end note
+
+note bottom of published
+  **Published State**
+  - Publicly accessible
+  - Version controlled
+  - Immutable (create new version to edit)
+  - Analytics tracked
+  - Can be unpublished temporarily
+end note
+
+note left of archived
+  **Archive Policy**
+  - Auto-archive after 90 days inactive
+  - Compressed storage
+  - Read-only access
+  - Permanent deletion after 1 year
+  - Can be restored within 30 days
+end note
+
+' State machine metadata
+note as MetadataNI
+  **Transition Guards:**
+  [isComplete] - All required fields filled
+  [hasContent] - Minimum content length met
+  [allReviewersApproved] - Unanimous approval
+  [criticalIssues] - P0/P1 issues found
+  [daysInactive > 90] - No activity for 90+ days
+  
+  **Actions:**
+  notifyReviewers() - Send email to review team
+  createActionItems() - Generate tasks from feedback
+  generateVersion() - Create immutable version
+  confirmDeletion() - Require user confirmation
+  compressData() - Reduce storage footprint
+end note
+
+' Concurrent states
+note as ConcurrentNote
+  **Concurrent Activities:**
+  While in certain states, the system
+  maintains concurrent operations:
+  - User activity tracking
+  - Search index updates
+  - Backup synchronization
+  - Audit logging
+end note
+
+legend right
+  |= **Legend** |
+  | State | Description |
+  | <<fork>> | Fork pseudo-state |
+  | <<join>> | Join pseudo-state |
+  | <<choice>> | Decision point |
+  | <<history>> | Remember last state |
+  | [guard] | Transition condition |
+  | / action | Transition action |
+  | entry / | Action on state entry |
+  | do / | Ongoing activity |
+  | exit / | Action on state exit |
+  
+  **Transition Syntax:**
+  event [guard] / action
+endlegend
+
+footer
+  State Machine v1.0
+  Last Updated: [Date]
+  Implementation: [Spring State Machine / Stateless / Custom]
+end footer
+
+@enduml
