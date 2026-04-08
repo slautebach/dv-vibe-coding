@@ -1,4 +1,4 @@
----
+﻿---
 name: dv-doc-xaml-workflows
 description: Analyze classic XAML-based workflows from live Dataverse and generate comprehensive documentation. Use when user asks to document classic workflows, analyze XAML workflows, review D365 background/real-time workflow logic, or create workflow documentation from D365 solutions. Triggers on phrases like "analyze classic workflow", "document XAML workflow", "review workflow logic", "analyze workflows from solution", or "document classic D365 workflows". Do NOT use for Power Automate cloud flows (use dv-doc-flows skill instead).
 ---
@@ -35,9 +35,9 @@ For project-specific conventions and `AssemblyQualifiedName` patterns used in th
 
 ## Output Structure
 
-**Staging** (repo root, never committed — shared across all skills):
+**Dataverse JSON** (committed to source control):
 ```
-.staging/classic-workflows/<WorkflowName>-<GUID>/
+src/dataverse/classic-workflows/<WorkflowName>-<GUID>/
   <WorkflowName>-<GUID>.xaml          # Workflow XAML logic
   <WorkflowName>-<GUID>.xaml.data.xml # Workflow metadata
   <WorkflowName>-<GUID>.dataverse.json # Raw API payload for traceability
@@ -55,7 +55,7 @@ wiki/Technical-Reference/classic-workflows/
     └── metadata.json       # Extracted workflow metadata
 ```
 
-> **Why staging?** Wiki pages may contain hand-written content — business context, diagrams, notes. The script never overwrites these directly. It writes fresh Dataverse output to `.staging/` so the AI merge step can apply only what changed. `.staging/` is in `.gitignore` and shared across all `dv-doc-*` skills.
+> `src/dataverse/` is committed to source control as the canonical JSON snapshot extracted from the live environment. This gives a diff-friendly audit trail of environment changes and allows wiki generation to run from local files without re-fetching from Dataverse.
 
 ## Workflow
 
@@ -78,7 +78,7 @@ python .github/skills/dv-doc-xaml-workflows/scripts/fetch-workflow-from-datavers
   --workflow-id E9581E0B-F5C7-49CD-81B7-7EAF5D668B3A
 ```
 
-The script writes to `.staging/classic-workflows/<WorkflowName>-<GUID>/`:
+The script writes to `src/dataverse/classic-workflows/<WorkflowName>-<GUID>/`:
 
 - `<WorkflowName>-<GUID>.xaml` — workflow XAML logic
 - `<WorkflowName>-<GUID>.xaml.data.xml` — workflow metadata
@@ -114,7 +114,7 @@ Collect: which business process this workflow automates, what the trigger entity
 
 #### 2b. Write/update `<WorkflowName>.md` (index page)
 
-**Auto-generated sections** (replace entirely from `.staging/classic-workflows/<WorkflowName>-<GUID>/<WorkflowName>-<GUID>.xaml.data.xml` and parsed XAML):
+**Auto-generated sections** (replace entirely from `src/dataverse/classic-workflows/<WorkflowName>-<GUID>/<WorkflowName>-<GUID>.xaml.data.xml` and parsed XAML):
 - `## Overview` table — workflow metadata: `Name`, `WorkflowId`, `Category`, `Mode` (Background/Real-time), `PrimaryEntity`, `StateCode`, trigger conditions (`TriggerOnCreate`, `TriggerOnDelete`, `TriggerOnUpdateAttributeList`)
 - `## Workflow Diagram` — embedded PlantUML activity diagram (`![Workflow Logic Diagram](./<WorkflowName>/logic-diagram.png)`)
 
@@ -165,9 +165,9 @@ Reference XAML DisplayName values for the most important activities.}
 
 ---
 
-#### 2d. Clean up staging
+#### 2d. Commit source data
 
-Delete `.staging/classic-workflows/<WorkflowName>-<GUID>/` after all files are written successfully.
+Commit `src/dataverse/classic-workflows/<WorkflowName>-<GUID>/` to source control — this JSON is the canonical record of what was extracted from Dataverse.
 
 ---
 

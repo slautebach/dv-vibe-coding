@@ -1,4 +1,4 @@
----
+﻿---
 name: dv-doc-entity
 description: Retrieve and document Dynamics 365 / Dataverse entities by fetching live metadata directly from Dataverse. Generates wiki pages at wiki/Technical-Reference/entities/{entity}.md (overview, attributes, option sets, relationships), {entity}/forms.md, and {entity}/views.md. Supports a single entity (--entity) or all entities in a solution (--solution). Use when asked to "document entity", "generate entity docs", "create entity wiki page", "fetch entity metadata", "document solution components", "inspect live solution", or "generate wiki pages for all entities in a solution". Do NOT use for North52 formula documentation (use n52-doc skill) or for parsing solution XML files (use dataverse-solution-parser skill).
 ---
@@ -26,9 +26,9 @@ Before running any live retrieval:
 
 ## Output Structure
 
-**Staging** (repo root, never committed — shared across all skills):
+**Dataverse JSON** (committed to source control):
 ```
-.staging/
+src/dataverse/
   entities/
     {entity}.json               # Raw structured Dataverse data
     {entity}.md                 # Lean index page (overview + pages links)
@@ -53,7 +53,7 @@ wiki/Technical-Reference/entities/
     views.md                    # Saved queries
 ```
 
-> **Why staging?** Final wiki pages may contain hand-written content (Business Analysis, ERD diagrams, custom notes). The script writes fresh Dataverse output to `.staging/` so the AI merge step can update auto-generated sections without overwriting preserved content. `.staging/` is gitignored and shared across all `dv-doc-*` skills.
+> `src/dataverse/` is committed to source control as the canonical JSON snapshot extracted from the live environment. This gives a diff-friendly audit trail of environment changes and allows wiki generation to run from local files without re-fetching from Dataverse.
 
 ## Output: Wiki Page Sections
 
@@ -125,7 +125,7 @@ python .github/skills/dv-doc-entity/scripts/fetch_entity_metadata.py \
 
 ### Step 3: AI Merge and Analysis
 
-After the script completes, staged files in `.staging/entities/` must be merged into the final wiki pages. The AI handles this step — updating auto-generated content, preserving hand-written sections, and generating a Business Analysis grounded in wiki domain documentation.
+After the script completes, files in `src/dataverse/entities/` must be merged into the final wiki pages. The AI handles this step — updating auto-generated content, preserving hand-written sections, and generating a Business Analysis grounded in wiki domain documentation.
 
 ---
 
@@ -146,7 +146,7 @@ Collect: domain names where this entity appears, key business processes it parti
 
 #### 3b. Write/update `{entity}.md` (index page)
 
-**Auto-generated sections** (replace entirely from `.staging/entities/{entity}.md`):
+**Auto-generated sections** (replace entirely from `src/dataverse/entities/{entity}.md`):
 - `## Overview` table
 - `## Pages` links
 
@@ -190,16 +190,16 @@ connect and why. Skip virtual/name shadow fields and generic system relationship
 
 | Final path | Source |
 |---|---|
-| `wiki/Technical-Reference/entities/{entity}/attributes.md` | `.staging/entities/{entity}/attributes.md` |
-| `wiki/Technical-Reference/entities/{entity}/relationships.md` | `.staging/entities/{entity}/relationships.md` |
-| `wiki/Technical-Reference/entities/{entity}/forms.md` | `.staging/entities/{entity}/forms.md` |
-| `wiki/Technical-Reference/entities/{entity}/views.md` | `.staging/entities/{entity}/views.md` |
+| `wiki/Technical-Reference/entities/{entity}/attributes.md` | `src/dataverse/entities/{entity}/attributes.md` |
+| `wiki/Technical-Reference/entities/{entity}/relationships.md` | `src/dataverse/entities/{entity}/relationships.md` |
+| `wiki/Technical-Reference/entities/{entity}/forms.md` | `src/dataverse/entities/{entity}/forms.md` |
+| `wiki/Technical-Reference/entities/{entity}/views.md` | `src/dataverse/entities/{entity}/views.md` |
 
 ---
 
-#### 3d. Clean up staging
+#### 3d. Commit source data
 
-Delete `.staging/entities/{entity}.json`, `.staging/entities/{entity}.md`, and `.staging/entities/{entity}/` after all files are written successfully.
+Commit `src/dataverse/entities/{entity}/` to source control — this JSON is the canonical record of what was extracted from Dataverse.
 
 ---
 

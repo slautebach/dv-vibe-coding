@@ -1,4 +1,4 @@
----
+﻿---
 name: dv-doc-plugin-steps
 description: Analyze Dynamics 365 Dataverse plugin assemblies and SDK message processing steps from live Dataverse and generate execution pipeline documentation. Use when reviewing plugin registrations, stage/mode configuration, filtering attributes, assembly coverage, or documenting plugin assemblies and SDK message processing steps.
 ---
@@ -23,9 +23,9 @@ copilot plugin install dataverse@dataverse-skills
 
 ## Output Structure
 
-**Staging** (repo root, never committed — shared across all skills):
+**Dataverse JSON** (committed to source control):
 ```
-.staging/plugin-steps/<AssemblyName>/
+src/dataverse/plugin-steps/<AssemblyName>/
   <AssemblyName>.plugin-steps.json  # Grouped assembly + steps
   <AssemblyName>.dataverse.json     # Raw FetchXML records for traceability
 ```
@@ -41,7 +41,7 @@ wiki/Technical-Reference/plugin-steps/
     metadata.json
 ```
 
-> **Why staging?** Wiki pages may contain hand-written content — business context, diagrams, notes. The script never overwrites these directly. It writes fresh Dataverse output to `.staging/` so the AI merge step can apply only what changed. `.staging/` is in `.gitignore` and shared across all `dv-doc-*` skills.
+> `src/dataverse/` is committed to source control as the canonical JSON snapshot extracted from the live environment. This gives a diff-friendly audit trail of environment changes and allows wiki generation to run from local files without re-fetching from Dataverse.
 
 ## Workflow
 
@@ -68,7 +68,7 @@ python .github/skills/dv-doc-plugin-steps/scripts/fetch-plugin-steps-from-datave
   --all
 ```
 
-The script writes to `.staging/plugin-steps/<AssemblyName>/`:
+The script writes to `src/dataverse/plugin-steps/<AssemblyName>/`:
 
 - `<AssemblyName>.plugin-steps.json` — `{"assembly": "...", "steps": [...]}`
 - `<AssemblyName>.dataverse.json` — raw FetchXML records for traceability
@@ -95,7 +95,7 @@ Collect: which business rules this assembly enforces, what entities it governs, 
 
 #### 2b. Write/update `<AssemblyName>.md` (index page)
 
-**Auto-generated sections** (replace entirely from `.staging/plugin-steps/<AssemblyName>/<AssemblyName>.plugin-steps.json`):
+**Auto-generated sections** (replace entirely from `src/dataverse/plugin-steps/<AssemblyName>/<AssemblyName>.plugin-steps.json`):
 - `## Overview` table — assembly metadata: name, version, isolation mode, `pluginassemblyid`, step count
 - `## Processing Pipeline Summary` — steps grouped by entity/message with stage, mode, and rank
 
@@ -146,9 +146,9 @@ business level, and any filtering attributes that limit when steps fire.}
 
 ---
 
-#### 2d. Clean up staging
+#### 2d. Commit source data
 
-Delete `.staging/plugin-steps/<AssemblyName>/` after all files are written successfully.
+Commit `src/dataverse/plugin-steps/<AssemblyName>/` to source control — this JSON is the canonical record of what was extracted from Dataverse.
 
 ---
 

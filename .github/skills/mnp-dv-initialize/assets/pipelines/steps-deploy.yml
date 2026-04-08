@@ -1,0 +1,80 @@
+# Reusable Deploy Steps Template
+# Used by: pipelines/deploy/solution.yml
+# Downloads the build artifact and deploys a Dataverse solution package
+# to the specified target environment.
+
+parameters:
+  - name: solutionName
+    type: string
+  - name: targetEnvironment
+    type: string
+  - name: appId
+    type: string
+    default: $(AppId)
+  - name: clientSecret
+    type: string
+    default: $(ClientSecret)
+  - name: artifactName
+    type: string
+    default: Package
+
+steps:
+  - download: current
+    artifact: '${{ parameters.artifactName }}'
+    displayName: Download Build Artifact
+
+  - task: PowerShell@2
+    displayName: Install Power Platform CLI
+    inputs:
+      targetType: inline
+      script: |
+        $null = dotnet tool install --global Microsoft.PowerApps.CLI.Tool 2>&1
+        Write-Host "pac version: $(pac --version)"
+
+  - task: PowerShell@2
+    displayName: Authenticate to Dataverse
+    inputs:
+      targetType: inline
+      script: |
+        pac auth create `
+          --url "${{ parameters.targetEnvironment }}" `
+          --applicationId "${{ parameters.appId }}" `
+          --clientSecret "${{ parameters.clientSecret }}" `
+          --tenant "$(TenantId)"
+
+  - task: PowerShell@2
+    displayName: Import Solution
+    inputs:
+      targetType: inline
+      script: |
+        $packagePath = "$(Pipeline.Workspace)\${{ parameters.artifactName }}"
+        $zipFile = Get-ChildItem -Path $packagePath -Filter "*${{ parameters.solutionName }}*.zip" | Select-Object -First 1
+        if (-not $zipFile) {
+          Write-Error "Solution zip not found in artifact: $packagePath"
+          exit 1
+        }
+        Write-Host "Importing: $($zipFile.FullName)"
+        pac solution import `
+          --path "$($zipFile.FullName)" `
+          --activate-plugins `
+          --force-overwrite
+
+  - task: PowerShell@2
+    displayName: Update Connection References
+    inputs:
+      targetType: filePath
+      filePath: '$(Build.SourcesDirectory)\pipelines\scripts\update-connection-references.ps1'
+      arguments: >
+        -targetEnvironment "${{ parameters.targetEnvironment }}"
+        -appId "${{ parameters.appId }}"
+        -clientSecret "${{ parameters.clientSecret }}"
+
+  - task: PowerShell@2
+    displayName: Activate Workflows
+    inputs:
+      targetType: filePath
+      filePath: '$(Build.SourcesDirectory)\pipelines\scripts\activate-workflows.ps1'
+      arguments: >
+        -targetEnvironment "${{ parameters.targetEnvironment }}"
+        -appId "${{ parameters.appId }}"
+        -clientSecret "${{ parameters.clientSecret }}"

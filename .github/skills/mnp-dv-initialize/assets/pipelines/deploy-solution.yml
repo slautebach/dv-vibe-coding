@@ -1,0 +1,108 @@
+# Deploy Solution Pipeline
+# Multi-stage deployment: DEV -> SIT -> UAT -> PROD
+# Manual approval gates are configured on the SIT, UAT, and PROD ADO Environments.
+# Triggered manually or after a successful build.
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: 'windows-2022'
+
+name: Deploy-Solution-$(Date:yyyyMMdd)-$(Rev:.rrr)
+
+parameters:
+  - name: artifactBuildId
+    displayName: Build ID to deploy (leave blank for latest)
+    type: string
+    default: ''
+
+variables:
+  - name: SolutionName
+    value: '__SolutionName__'  # TODO: Replace with your solution unique name
+  - name: BuildPackageFile
+    value: Package
+
+stages:
+  # -------------------------------------------------------------------
+  # DEV — deploys automatically (no approval gate)
+  # -------------------------------------------------------------------
+  - stage: DeployDev
+    displayName: Deploy to DEV
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy to DC-__Solution__-DEV
+        environment: DC-__Solution__-DEV   # TODO: Replace __Solution__ with your solution acronym
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: ../templates/steps-deploy.yml
+                  parameters:
+                    solutionName: $(SolutionName)
+                    targetEnvironment: 'https://dc-__solution__-dev.crm3.dynamics.com'
+                    appId: $(AppId)
+                    clientSecret: $(ClientSecret)
+
+  # -------------------------------------------------------------------
+  # SIT — requires manual approval on the DC-__Solution__-SIT ADO Environment
+  # -------------------------------------------------------------------
+  - stage: DeploySIT
+    displayName: Deploy to SIT
+    dependsOn: DeployDev
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy to DC-__Solution__-SIT
+        environment: DC-__Solution__-SIT   # TODO: configure approval check in ADO
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: ../templates/steps-deploy.yml
+                  parameters:
+                    solutionName: $(SolutionName)
+                    targetEnvironment: 'https://dc-__solution__-sit.crm3.dynamics.com'
+                    appId: $(AppId)
+                    clientSecret: $(ClientSecret)
+
+  # -------------------------------------------------------------------
+  # UAT — requires manual approval on the DC-__Solution__-UAT ADO Environment
+  # -------------------------------------------------------------------
+  - stage: DeployUAT
+    displayName: Deploy to UAT
+    dependsOn: DeploySIT
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy to DC-__Solution__-UAT
+        environment: DC-__Solution__-UAT   # TODO: configure approval check in ADO
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: ../templates/steps-deploy.yml
+                  parameters:
+                    solutionName: $(SolutionName)
+                    targetEnvironment: 'https://dc-__solution__-uat.crm3.dynamics.com'
+                    appId: $(AppId)
+                    clientSecret: $(ClientSecret)
+
+  # -------------------------------------------------------------------
+  # PROD — requires manual approval on the DC-__Solution__-PROD ADO Environment
+  # -------------------------------------------------------------------
+  - stage: DeployProd
+    displayName: Deploy to PROD
+    dependsOn: DeployUAT
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy to DC-__Solution__-PROD
+        environment: DC-__Solution__-PROD  # TODO: configure approval check in ADO
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: ../templates/steps-deploy.yml
+                  parameters:
+                    solutionName: $(SolutionName)
+                    targetEnvironment: 'https://dc-__solution__.crm3.dynamics.com'
+                    appId: $(AppId)
+                    clientSecret: $(ClientSecret)

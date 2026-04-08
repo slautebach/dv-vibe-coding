@@ -1,4 +1,4 @@
----
+﻿---
 name: dv-doc-roles
 description: Analyze Dynamics 365 Dataverse security role components from live Dataverse and generate structured role documentation. Use when reviewing role privileges, comparing role definitions, auditing access levels, or creating security role documentation.
 ---
@@ -23,9 +23,9 @@ copilot plugin install dataverse@dataverse-skills
 
 ## Output Structure
 
-**Staging** (repo root, never committed — shared across all skills):
+**Dataverse JSON** (committed to source control):
 ```
-.staging/roles/<RoleName>/
+src/dataverse/roles/<RoleName>/
   <RoleName>.role.json      # Merged role metadata + privileges
   <RoleName>.dataverse.json # Raw Dataverse records for traceability
 ```
@@ -38,7 +38,7 @@ wiki/Technical-Reference/roles/
     metadata.json
 ```
 
-> **Why staging?** Wiki pages may contain hand-written content — business context, diagrams, notes. The script never overwrites these directly. It writes fresh Dataverse output to `.staging/` so the AI merge step can apply only what changed. `.staging/` is in `.gitignore` and shared across all `dv-doc-*` skills.
+> `src/dataverse/` is committed to source control as the canonical JSON snapshot extracted from the live environment. This gives a diff-friendly audit trail of environment changes and allows wiki generation to run from local files without re-fetching from Dataverse.
 
 ## Workflow
 
@@ -65,7 +65,7 @@ python .github/skills/dv-doc-roles/scripts/fetch-role-from-dataverse.py \
   --all
 ```
 
-The script writes to `.staging/roles/<RoleName>/`:
+The script writes to `src/dataverse/roles/<RoleName>/`:
 
 - `<RoleName>.role.json` — `{"role": {...metadata...}, "privileges": [{name, accessright, privilegedepthmask}, ...]}`
 - `<RoleName>.dataverse.json` — raw Dataverse records for traceability
@@ -91,7 +91,7 @@ Collect: the job function or persona this role supports, which business domains 
 
 #### 2b. Write/update `<RoleName>.md` (index page)
 
-**Auto-generated sections** (replace entirely from `.staging/roles/<RoleName>/<RoleName>.role.json`):
+**Auto-generated sections** (replace entirely from `src/dataverse/roles/<RoleName>/<RoleName>.role.json`):
 - `## Overview` table — role metadata: `roleid`, `name`, `description`, `modifiedon`, `ismanaged`
 - `## Privilege Summary` — privilege distribution table grouped by action (Read/Create/Write/Delete/etc.) and access level (Global/Deep/Local/Basic)
 - `## Elevated Permissions` — list of high-impact privileges (system-level admin or broad Global write/delete on custom tables)
@@ -141,15 +141,15 @@ Flag any that represent a least-privilege concern.}
 
 ---
 
-#### 2d. Clean up staging
+#### 2d. Commit source data
 
-Delete `.staging/roles/<RoleName>/` after all files are written successfully.
+Commit `src/dataverse/roles/<RoleName>/` to source control — this JSON is the canonical record of what was extracted from Dataverse.
 
 ---
 
 ### Step 3: Parse Role Data
 
-Input: `wiki/Technical-Reference/roles/<RoleName>/<RoleName>.role.json`
+Input: `src/dataverse/roles/<RoleName>/<RoleName>.role.json`
 
 - Parse `role` fields: `roleid`, `name`, `description`, `modifiedon`, `ismanaged`
 - Parse `privileges` array: group by action type and access level

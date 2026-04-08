@@ -1,0 +1,79 @@
+# Reusable Export Steps Template
+# Used by: pipelines/export/solution.yml
+# Exports and unpacks a Dataverse solution, then either commits to main
+# or raises a pull request depending on the commitTarget parameter.
+
+parameters:
+  - name: solutionName
+    type: string
+  - name: targetEnvironment
+    type: string
+  - name: appId
+    type: string
+    default: $(AppId)
+  - name: clientSecret
+    type: string
+    default: $(ClientSecret)
+  - name: commitTarget
+    type: string
+    default: pullRequest   # 'pullRequest' or 'main'
+
+steps:
+  - powershell: git config --system core.longpaths true
+    displayName: Enable Long Paths
+
+  - task: PowerShell@2
+    displayName: Install Power Platform CLI
+    inputs:
+      targetType: inline
+      script: |
+        $null = dotnet tool install --global Microsoft.PowerApps.CLI.Tool 2>&1
+        Write-Host "pac version: $(pac --version)"
+
+  - task: PowerShell@2
+    displayName: Authenticate to Dataverse
+    inputs:
+      targetType: inline
+      script: |
+        pac auth create `
+          --url "${{ parameters.targetEnvironment }}" `
+          --applicationId "${{ parameters.appId }}" `
+          --clientSecret "${{ parameters.clientSecret }}" `
+          --tenant "$(TenantId)"
+
+  - task: PowerShell@2
+    displayName: Export Solution
+    inputs:
+      targetType: inline
+      script: |
+        $exportPath = "$(Build.SourcesDirectory)\export"
+        New-Item -ItemType Directory -Force -Path $exportPath | Out-Null
+        pac solution export `
+          --name "${{ parameters.solutionName }}" `
+          --path "$exportPath\${{ parameters.solutionName }}.zip" `
+          --managed false `
+          --overwrite
+
+  - task: PowerShell@2
+    displayName: Unpack Solution
+    inputs:
+      targetType: inline
+      script: |
+        $unpackPath = "$(Build.SourcesDirectory)\src\solutions\${{ parameters.solutionName }}"
+        pac solution unpack `
+          --zipfile "$(Build.SourcesDirectory)\export\${{ parameters.solutionName }}.zip" `
+          --folder "$unpackPath" `
+          --processCanvasApps
+
+  - task: PowerShell@2
+    displayName: Commit and Create PR
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    inputs:
+      targetType: filePath
+      filePath: '$(Build.SourcesDirectory)\pipelines\scripts\commit-and-pr.ps1'
+      arguments: >
+        -solutionName "${{ parameters.solutionName }}"
+        -commitTarget "${{ parameters.commitTarget }}"
+        -buildSourceBranch "$(Build.SourceBranch)"
+        -buildId "$(Build.BuildId)"

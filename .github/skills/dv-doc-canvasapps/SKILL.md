@@ -1,4 +1,4 @@
----
+﻿---
 name: dv-doc-canvasapps
 description: Analyze Dynamics 365 Dataverse canvas app components from live Dataverse and generate documentation for app metadata, dependencies, and integrations. Use when documenting canvas apps, reviewing app metadata, mapping connector usage, or auditing embedded command/dialog apps in D365 solutions.
 ---
@@ -23,9 +23,9 @@ copilot plugin install dataverse@dataverse-skills
 
 ## Output Structure
 
-**Staging** (repo root, never committed — shared across all skills):
+**Dataverse JSON** (committed to source control):
 ```
-.staging/canvas-apps/<AppName>/source/
+src/dataverse/canvas-apps/<AppName>/source/
   <AppName>.meta.xml          # Normalized metadata for analysis
   <AppName>.dataverse.json    # Raw Dataverse record for traceability
 ```
@@ -41,7 +41,7 @@ wiki/Technical-Reference/canvas-apps/
     metadata.json
 ```
 
-> **Why staging?** Wiki pages may contain hand-written content — business context, diagrams, notes. The script never overwrites these directly. It writes fresh Dataverse output to `.staging/` so the AI merge step can apply only what changed. `.staging/` is in `.gitignore` and shared across all `dv-doc-*` skills.
+> `src/dataverse/` is committed to source control as the canonical JSON snapshot extracted from the live environment. This gives a diff-friendly audit trail of environment changes and allows wiki generation to run from local files without re-fetching from Dataverse.
 
 ## Workflow
 
@@ -64,7 +64,7 @@ python .github/skills/dv-doc-canvasapps/scripts/fetch-canvasapp-from-dataverse.p
   --app-id e7274ede-a366-4cd5-8728-e909c7aeb04a
 ```
 
-The script writes to `.staging/canvas-apps/<AppName>/source/`:
+The script writes to `src/dataverse/canvas-apps/<AppName>/source/`:
 
 - `<AppName>.meta.xml` — app metadata for analysis
 - `<AppName>.dataverse.json` — raw Dataverse record for traceability
@@ -90,7 +90,7 @@ Collect: which business process this app supports, the entities and connectors i
 
 #### 2b. Write/update `<AppName>.md` (index page)
 
-**Auto-generated sections** (replace entirely from `.staging/canvas-apps/<AppName>/source/<AppName>.meta.xml`):
+**Auto-generated sections** (replace entirely from `src/dataverse/canvas-apps/<AppName>/source/<AppName>.meta.xml`):
 - `## Overview` table — app metadata: `Name`, `DisplayName`, `AppVersion`, `Status`, `CreatedByClientVersion`, `MinClientVersion`
 - `## Connectors` — list of all `ConnectionReferences` with connector IDs and types
 - `## Dataverse Dependencies` — list of `CdsDependencies` (tables/flows referenced)
@@ -140,9 +140,9 @@ it accesses or modifies on each. Skip purely lookup/reference tables.}
 
 ---
 
-#### 2d. Clean up staging
+#### 2d. Commit source data
 
-Delete `.staging/canvas-apps/<AppName>/` after all files are written successfully.
+Commit `src/dataverse/canvas-apps/<AppName>/` to source control — this JSON is the canonical record of what was extracted from Dataverse.
 
 ---
 

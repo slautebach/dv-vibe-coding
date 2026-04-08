@@ -1,4 +1,4 @@
----
+﻿---
 name: n52-doc
 description: Analyze North52 Decision Suite formulas directly from Dynamics 365 Dataverse and generate comprehensive documentation. Use when user asks to document North52 formulas, review formula performance/maintainability, create formula index pages or code-review.md files, or analyze North52 formulas. Triggers on phrases like "analyze North52 formula", "document this formula", "review North52 code", or "fetch North52 formulas".
 ---
@@ -26,9 +26,9 @@ Before running any live retrieval:
 
 ## Output Structure
 
-**Staging** (repo root, never committed — shared across all skills):
+**Dataverse JSON** (committed to source control):
 ```
-.staging/
+src/dataverse/
   north52/
     <entity>/
       <shortcode>/
@@ -54,7 +54,7 @@ wiki/Technical-Reference/North52/
       dt_index.md                    # Optional — index of all dt_ sheet files
 ```
 
-> **Why staging?** Wiki pages may contain hand-written content (diagrams, implementation notes, known issues). The fetch script never overwrites these directly — it writes fresh Dataverse output to `.staging/` so the AI merge step can update only what changed. `.staging/` is in `.gitignore` and shared across all `dv-doc-*` skills.
+> `src/dataverse/` is committed to source control as the canonical JSON snapshot extracted from the live environment. This gives a diff-friendly audit trail of environment changes and allows wiki generation to run from local files without re-fetching from Dataverse.
 
 ## Output: Wiki Page Sections
 
@@ -139,7 +139,7 @@ python .github/skills/n52-doc/scripts/fetch_north52_from_dataverse.py \
   --list
 ```
 
-The script writes to `.staging/north52/<entity>/<shortcode>/`:
+The script writes to `src/dataverse/north52/<entity>/<shortcode>/`:
 - `<shortcode>.n52` — formula source code (plaintext)
 - `analysis_metadata.json` — structured formula metadata
 - `*.fetch.xml` — FetchXML queries (if any)
@@ -171,7 +171,7 @@ Collect: which business domain this formula belongs to, what business process it
 
 **Location:** `wiki/Technical-Reference/North52/<entity>/<shortcode>.md`
 
-**Auto-generated sections** (replace entirely from `.staging/north52/<entity>/<shortcode>/analysis_metadata.json`):
+**Auto-generated sections** (replace entirely from `src/dataverse/north52/<entity>/<shortcode>/analysis_metadata.json`):
 - `## Overview` table — formula name, shortcode, entity, type, event, execution mode, category, stage, complexity tier
 
 **AI-written section** (generate fresh on first run; update only if formula changed on re-runs):
@@ -214,9 +214,9 @@ Omit if none found.}
 | Final path | Source |
 |---|---|
 | `wiki/Technical-Reference/North52/<entity>/<shortcode>/code-review.md` | AI-generated from `.n52` source using [`prompts/codereview.md`](prompts/codereview.md) |
-| `wiki/Technical-Reference/North52/<entity>/<shortcode>/<shortcode>.n52` | Copied from `.staging/north52/<entity>/<shortcode>/` |
-| `wiki/Technical-Reference/North52/<entity>/<shortcode>/analysis_metadata.json` | Copied from staging; update `ai_documentation` timestamps |
-| `wiki/Technical-Reference/North52/<entity>/<shortcode>/*.fetch.xml` | Copied from staging (if any) |
+| `wiki/Technical-Reference/North52/<entity>/<shortcode>/<shortcode>.n52` | Copied from `src/dataverse/north52/<entity>/<shortcode>/` |
+| `wiki/Technical-Reference/North52/<entity>/<shortcode>/analysis_metadata.json` | Copied from `src/dataverse/`; update `ai_documentation` timestamps |
+| `wiki/Technical-Reference/North52/<entity>/<shortcode>/*.fetch.xml` | Copied from `src/dataverse/` (if any) |
 | `wiki/Technical-Reference/North52/<entity>/<shortcode>/diagram.puml` | AI-generated PlantUML (complex formulas only) |
 | `wiki/Technical-Reference/North52/<entity>/<shortcode>/diagram.png` | Rendered via `python .github/skills/n52-doc/scripts/generate_diagram.py <entity> <shortcode>` |
 | `wiki/Technical-Reference/North52/<entity>/<shortcode>/dt_*.md` | Generated via `python .github/skills/n52-doc/scripts/extract_decision_tables.py <entity> <shortcode>` |
@@ -226,9 +226,9 @@ Update `.order` file in the `<shortcode>/` folder to list: `code-review`
 
 ---
 
-#### 3d. Clean up staging
+#### 3d. Commit source data
 
-Delete `.staging/north52/<entity>/<shortcode>/` after all files are written successfully.
+Commit `src/dataverse/north52/<entity>/<shortcode>/` to source control — this JSON is the canonical record of what was extracted from Dataverse.
 
 ---
 
@@ -281,7 +281,7 @@ User request → Parse intent
 │  ├─ List all formulas in environment?
 │  │  └─ run_in_terminal: `python fetch_north52_from_dataverse.py --environment <env> --list`
 │  │
-│  ├─ Extract ALL formulas to .staging/?
+│  ├─ Extract ALL formulas to src/dataverse/?
 │  │  ├─ Full extraction:
 │  │  │  └─ run_in_terminal: `python fetch_north52_from_dataverse.py --environment <env> --all --analyze`
 │  │  └─ Incremental (skip already-extracted formulas):
@@ -312,14 +312,14 @@ User request → Parse intent
    │     1. Check status: `python ai_evaluate_formulas.py <entity> <shortcode>`
    │     2. If up-to-date → inform user, offer --force option
    │     3. If needs update → proceed with generation
-   │     4. Read .n52 file and analysis_metadata.json from .staging/
+   │     4. Read .n52 file and analysis_metadata.json from src/dataverse/
    │     5. Generate <shortcode>.md (index page) using SKILL guidelines
    │     6. Generate code-review.md using SKILL guidelines
    │     7. If decision table JSON present in .n52 → run: `python extract_decision_tables.py <entity> <shortcode>`
    │     8. If logic is complex → generate diagram.puml (PlantUML activity diagram)
    │     9. If diagram.puml created → run: `python generate_diagram.py <entity> <shortcode>`
    │    10. Update timestamps: `python update_ai_timestamps.py <entity> <shortcode>`
-   │    11. Delete .staging/north52/<entity>/<shortcode>/
+   │    11. Commit src/dataverse/north52/<entity>/<shortcode>/ to source control
    │
    └─ Force regeneration (ignore timestamps)?
       └─ run_in_terminal: `python ai_evaluate_formulas.py --force <entity> <shortcode>`
@@ -328,7 +328,7 @@ User request → Parse intent
 ## Critical Requirements
 
 1. **Four-step process** - Install → Fetch → AI Merge → Review/Commit
-2. **Staging first** - Fetch writes to `.staging/north52/` never directly to wiki
+2. **Staging first** - Fetch writes to `src/dataverse/north52/` never directly to wiki
 3. **Smart caching** - Only regenerate AI docs if formula changed or user forces
 4. **Timestamp tracking** - Compare `last_formula_modified` with `description_generated`/`codereview_generated`
 5. **Dataverse source** - Fetch directly from live environments using Web API
@@ -457,8 +457,8 @@ python fetch_north52_from_dataverse.py --environment prod --client-secret <secre
 **Output**:
 
 - When `--analyze` flag is used:
-  - `.staging/north52/<entity>/<shortcode>/<shortcode>.n52`
-  - `.staging/north52/<entity>/<shortcode>/analysis_metadata.json`
+  - `src/dataverse/north52/<entity>/<shortcode>/<shortcode>.n52`
+  - `src/dataverse/north52/<entity>/<shortcode>/analysis_metadata.json`
 - When `--list` flag is used: Console output of all formulas
 - When `--json` flag is used: JSON output to console
 
@@ -692,7 +692,7 @@ python extract_decision_tables.py --check mnp_writeoff gDt
 ```
 1. Fetch formula from Dataverse with --analyze flag
 2. Parse formula code and extract metadata
-3. Save to .staging/north52/<entity>/<shortcode>/
+3. Save to src/dataverse/north52/<entity>/<shortcode>/
 4. AI merge step copies to wiki/Technical-Reference/North52/<entity>/<shortcode>/
 5. Load metadata → Use as guide for AI documentation
 6. After generating docs → Update ai_documentation timestamps
@@ -707,7 +707,7 @@ python extract_decision_tables.py --check mnp_writeoff gDt
 
 ### STEP 1: Fetch Formula from Dataverse
 
-**Goal**: Retrieve formula from live environment and write to `.staging/north52/<entity>/<shortcode>/`
+**Goal**: Retrieve formula from live environment and write to `src/dataverse/north52/<entity>/<shortcode>/`
 
 #### 1.1: List Available Environments
 
@@ -745,7 +745,7 @@ python .github/skills/n52-doc/scripts/fetch_north52_from_dataverse.py --environm
 4. Writes `<shortcode>.n52` → Formula code
 5. Writes `analysis_metadata.json` → Structured metadata
 
-**Output**: `.staging/north52/<entity>/<shortcode>/`
+**Output**: `src/dataverse/north52/<entity>/<shortcode>/`
 
 - `analysis_metadata.json`
 - `<shortcode>.n52`
@@ -789,8 +789,8 @@ Event: Create, Update
 
 **Process**:
 
-1. Load `analysis_metadata.json` from `.staging/`
-2. Read `<shortcode>.n52` file from `.staging/`
+1. Load `analysis_metadata.json` from `src/dataverse/`
+2. Read `<shortcode>.n52` file from `src/dataverse/`
 3. Gather domain context (step 3a above)
 4. Generate `<shortcode>.md` — Overview + Business Analysis (index page)
 5. Generate `code-review.md` (technical analysis)

@@ -1,0 +1,49 @@
+# Reusable Build Steps Template
+# Used by: pipelines/build/solution.yml
+# Compiles plugins, builds the solution package, and produces deployment artifacts.
+
+parameters:
+  - name: solutionName
+    type: string
+    default: ''
+
+steps:
+  - powershell: |
+      Write-Host "Building solution: ${{ parameters.solutionName }}"
+      Write-Host "Build source: $(Build.SourcesDirectory)"
+    displayName: Log Build Info
+
+  - task: UseDotNet@2
+    displayName: Use .NET SDK
+    inputs:
+      packageType: sdk
+      useGlobalJson: false
+      version: '8.x'
+
+  - task: PowerShell@2
+    displayName: Build Plugins
+    inputs:
+      targetType: filePath
+      filePath: '$(Build.SourcesDirectory)\pipelines\scripts\build-plugins.ps1'
+      arguments: '-sourcePath "$(Build.SourcesDirectory)\src\plugins"'
+
+  - task: PowerShell@2
+    displayName: Pack Solution
+    inputs:
+      targetType: filePath
+      filePath: '$(Build.SourcesDirectory)\pipelines\scripts\build-solution.ps1'
+      arguments: >
+        -solutionName "${{ parameters.solutionName }}"
+        -sourcePath "$(Build.SourcesDirectory)\src\solutions"
+        -outputPath "$(Build.SourcesDirectory)\Build"
+
+  - task: PowerShell@2
+    displayName: List Build Output
+    inputs:
+      targetType: inline
+      script: |
+        if (Test-Path "$(Build.SourcesDirectory)\Build") {
+          tree "$(Build.SourcesDirectory)\Build" /F
+        } else {
+          Write-Warning "Build folder not found"
+        }

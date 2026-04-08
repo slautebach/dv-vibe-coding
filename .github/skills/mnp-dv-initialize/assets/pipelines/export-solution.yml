@@ -1,0 +1,48 @@
+# Export Solution Pipeline
+# Exports and unpacks a Dataverse solution from the target environment,
+# then raises a pull request for review before merging to main.
+# Triggered manually (run this pipeline when you want to capture Dataverse changes).
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: 'windows-2022'
+
+name: Export-Solution-$(Date:yyyyMMdd)-$(Rev:.rrr)
+
+parameters:
+  - name: targetEnvironment
+    displayName: Target Environment URL
+    type: string
+    default: 'https://dc-__solution__-dev.crm3.dynamics.com'
+
+variables:
+  - name: SolutionName
+    value: '__SolutionName__'  # TODO: Replace with your solution unique name
+  - name: BuildPackageFile
+    value: Package
+
+stages:
+  - stage: Export
+    displayName: Export Solution
+    jobs:
+      - job: ExportSolution
+        displayName: Export and Unpack Solution
+        steps:
+          - checkout: self
+            displayName: Checkout Source
+            persistCredentials: true
+
+          - powershell: git config --system core.longpaths true
+            displayName: Enable Long Paths
+
+          - template: ../templates/steps-export.yml
+            parameters:
+              solutionName: $(SolutionName)
+              targetEnvironment: ${{ parameters.targetEnvironment }}
+              appId: $(AppId)
+              clientSecret: $(ClientSecret)
+              commitTarget: pullRequest  # raises a PR for review; change to 'main' for direct commit
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken)

@@ -1,0 +1,48 @@
+# Build Solution Pipeline
+# Compiles plugin assemblies and packages the Dataverse solution.
+# Triggered on merges to main.
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - src/solutions/**
+      - src/plugins/**
+      - src/webresources/**
+    exclude:
+      - '**/*.md'
+
+pr: none
+
+pool:
+  vmImage: 'windows-2022'
+
+name: CI-Build-$(Date:yyyyMMdd)-$(Rev:.rrr)
+
+variables:
+  - name: SolutionName
+    value: '__SolutionName__'  # TODO: Replace with your solution unique name
+  - name: BuildPackageFile
+    value: Package
+
+stages:
+  - stage: Build
+    displayName: Build Solution
+    jobs:
+      - job: BuildSolution
+        displayName: Build and Package
+        steps:
+          - checkout: self
+            displayName: Checkout Source
+
+          - template: ../templates/steps-build.yml
+            parameters:
+              solutionName: $(SolutionName)
+
+          - task: PublishBuildArtifacts@1
+            displayName: Publish Build Artifacts
+            inputs:
+              pathToPublish: '$(Build.SourcesDirectory)\Build'
+              artifactName: '$(BuildPackageFile)'

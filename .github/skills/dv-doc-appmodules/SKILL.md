@@ -1,4 +1,4 @@
----
+﻿---
 name: dv-doc-appmodules
 description: Analyze Dynamics 365 Dataverse model-driven app modules and related site maps from live Dataverse, then generate app navigation and component documentation. Use when documenting AppModules, app navigation, sitemap structure, app component coverage, or model-driven app composition.
 ---
@@ -23,9 +23,9 @@ copilot plugin install dataverse@dataverse-skills
 
 ## Output Structure
 
-**Staging** (repo root, never committed — shared across all skills):
+**Dataverse JSON** (committed to source control):
 ```
-.staging/app-modules/<AppUniqueName>/
+src/dataverse/app-modules/<AppUniqueName>/
   <AppUniqueName>.appmodule.json   # Merged app module + sitemap data
   <AppUniqueName>.dataverse.json   # Raw Dataverse records for traceability
 ```
@@ -41,7 +41,7 @@ wiki/Technical-Reference/app-modules/
     metadata.json
 ```
 
-> **Why staging?** Wiki pages may contain hand-written content — business context, diagrams, notes. The script never overwrites these directly. It writes fresh Dataverse output to `.staging/` so the AI merge step can apply only what changed. `.staging/` is in `.gitignore` and shared across all `dv-doc-*` skills.
+> `src/dataverse/` is committed to source control as the canonical JSON snapshot extracted from the live environment. This gives a diff-friendly audit trail of environment changes and allows wiki generation to run from local files without re-fetching from Dataverse.
 
 ## Workflow
 
@@ -68,7 +68,7 @@ python .github/skills/dv-doc-appmodules/scripts/fetch-appmodule-from-dataverse.p
   --app-id-guid 3a7c1e2d-5f4b-4e6a-9c8d-1b2e3f4a5b6c
 ```
 
-The script writes to `.staging/app-modules/<AppUniqueName>/`:
+The script writes to `src/dataverse/app-modules/<AppUniqueName>/`:
 
 - `<AppUniqueName>.appmodule.json` — merged `{"appmodule": {...}, "sitemap": {...}}`
 - `<AppUniqueName>.dataverse.json` — raw Dataverse records for traceability
@@ -94,7 +94,7 @@ Collect: which business domains this app serves, key processes it supports, and 
 
 #### 2b. Write/update `<AppUniqueName>.md` (index page)
 
-**Auto-generated sections** (replace entirely from `.staging/app-modules/<AppUniqueName>/<AppUniqueName>.appmodule.json`):
+**Auto-generated sections** (replace entirely from `src/dataverse/app-modules/<AppUniqueName>/<AppUniqueName>.appmodule.json`):
 - `## Overview` table — app metadata: `UniqueName`, `name`, `formfactor`, `clienttype`, `appmoduleversion`, `statecode`
 - `## Navigation Areas` — summary of top-level sitemap areas (Area titles only)
 
@@ -136,15 +136,15 @@ distinction if evident from the entities or privileges surfaced in the sitemap.}
 
 | Final path | Source |
 |---|---|
-| `wiki/Technical-Reference/app-modules/<AppUniqueName>/navigation.md` | Parsed sitemap from `.staging/app-modules/<AppUniqueName>/<AppUniqueName>.appmodule.json` (see Step 3) |
+| `wiki/Technical-Reference/app-modules/<AppUniqueName>/navigation.md` | Parsed sitemap from `src/dataverse/app-modules/<AppUniqueName>/<AppUniqueName>.appmodule.json` (see Step 3) |
 | `wiki/Technical-Reference/app-modules/<AppUniqueName>/code-review.md` | Generated from review heuristics (see Step 4) |
 | `wiki/Technical-Reference/app-modules/<AppUniqueName>/metadata.json` | Component counts, sitemap depth, source record IDs |
 
 ---
 
-#### 2d. Clean up staging
+#### 2d. Commit source data
 
-Delete `.staging/app-modules/<AppUniqueName>/` after all files are written successfully.
+Commit `src/dataverse/app-modules/<AppUniqueName>/` to source control — this JSON is the canonical record of what was extracted from Dataverse.
 
 ---
 

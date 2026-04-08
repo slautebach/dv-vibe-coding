@@ -1,4 +1,4 @@
----
+﻿---
 name: dv-doc-flows
 description: Analyze Power Automate cloud flows from live Dataverse and generate comprehensive documentation. Use when user asks to document cloud flows, analyze Power Automate flows, review flow logic, or create flow documentation from D365 solutions. Triggers on phrases like "analyze cloud flow", "document Power Automate", "review flow", or "analyze flows from solution".
 ---
@@ -36,9 +36,9 @@ This skill retrieves the latest cloud flow definition directly from Dataverse, t
 
 **Output Structure:**
 
-**Staging** (repo root, never committed — shared across all skills):
+**Dataverse JSON** (committed to source control):
 ```
-.staging/cloud-flows/
+src/dataverse/cloud-flows/
 ├── <FlowName>/
 │   ├── <FlowName>-<GUID>.json          # Normalized flow JSON for analysis
 │   └── <FlowName>-<GUID>.dataverse.json # Raw Dataverse record for traceability
@@ -56,7 +56,7 @@ wiki/Technical-Reference/cloud-flows/
     └── metadata.json       # Extracted flow metadata
 ```
 
-> **Why staging?** Wiki pages may contain hand-written content — business context, diagrams, notes. The script never overwrites these directly. It writes fresh Dataverse output to `.staging/` so the AI merge step can apply only what changed. `.staging/` is in `.gitignore` and shared across all `dv-doc-*` skills.
+> `src/dataverse/` is committed to source control as the canonical JSON snapshot extracted from the live environment. This gives a diff-friendly audit trail of environment changes and allows wiki generation to run from local files without re-fetching from Dataverse.
 
 ## Workflow
 
@@ -79,7 +79,7 @@ python .github/skills/dv-doc-flows/scripts/fetch-flow-from-dataverse.py \
   --flow-id FF7B08CD-132F-EF11-8E4F-6045BD5D6396
 ```
 
-The script writes to `.staging/cloud-flows/<FlowName>/`:
+The script writes to `src/dataverse/cloud-flows/<FlowName>/`:
 
 - `<FlowName>-<GUID>.json` — normalized flow JSON for analysis
 - `<FlowName>-<GUID>.dataverse.json` — raw Dataverse record for traceability
@@ -105,7 +105,7 @@ Collect: which business process this flow automates, which entities it touches, 
 
 #### 2b. Write/update `<FlowName>.md` (index page)
 
-**Auto-generated sections** (replace entirely from `.staging/cloud-flows/<FlowName>/<FlowName>-<GUID>.json`):
+**Auto-generated sections** (replace entirely from `src/dataverse/cloud-flows/<FlowName>/<FlowName>-<GUID>.json`):
 - `## Overview` table — flow metadata: `displayName`, trigger type and details, connection references, action/condition/loop counts, complexity rating
 - `## Flow Diagram` — embedded PlantUML activity diagram (`![Flow Logic Diagram](./<FlowName>/logic-diagram.png)`)
 
@@ -154,9 +154,9 @@ Focus on tables where the flow performs create/update/delete, not just lookups.}
 
 ---
 
-#### 2d. Clean up staging
+#### 2d. Commit source data
 
-Delete `.staging/cloud-flows/<FlowName>/` after all files are written successfully.
+Commit `src/dataverse/cloud-flows/<FlowName>/` to source control — this JSON is the canonical record of what was extracted from Dataverse.
 
 ---
 
@@ -393,7 +393,7 @@ Summary: 4 of 5 flows documented successfully
 
 1. Load `dv-overview` and confirm the environment with `dv-connect`.
 2. Run: `python .github/skills/dv-doc-flows/scripts/fetch-flow-from-dataverse.py --environment dev --name "AutomatedEmailAudit"`
-3. Read the output JSON from `.staging/cloud-flows/AutomatedEmailAudit/`
+3. Read the output JSON from `src/dataverse/cloud-flows/AutomatedEmailAudit/`
 4. Extract flow name: "AutomatedEmailAudit"
 5. Generate `<FlowName>.md` using `prompts/README.md` criteria
 6. Generate logic-diagram.puml with PlantUML activity diagram
